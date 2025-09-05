@@ -10,7 +10,8 @@ class PixelAdjacencyGraph:
 
         if make_graph_planar:
             self._make_graph_planar()
-    
+
+# PUBLIC    
     def get_adjacency_matrix(self, deep_copy = True):
         if deep_copy:
             return np.array(self.adjacency_matrix)
@@ -43,10 +44,7 @@ class PixelAdjacencyGraph:
         
         return is_node_planar
 
-    '''
-    PRIVATE METHODS
-    '''
-
+# PRIVATE
     # create adjacency matrix for given pixel art
     def  _init_adjacency_graph(self):
         self.adjacency_matrix = np.ones((self.pixel_art.shape[0], self.pixel_art.shape[1], 8), dtype=bool)
