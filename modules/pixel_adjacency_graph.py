@@ -23,7 +23,7 @@ class PixelAdjacencyGraph:
         if matrix is None:
             matrix = self.adjacency_matrix
 
-        opposite_row, opposite_col = self._get_neighbouring_node(row, col, edge_index)
+        opposite_row, opposite_col = self.get_neighbouring_node(row, col, edge_index)
         matrix[row, col, edge_index] \
             = matrix[opposite_row, opposite_col, 7-edge_index] \
             = value
@@ -44,6 +44,16 @@ class PixelAdjacencyGraph:
                     = False
         
         return is_node_planar
+    
+    # Given a node edge index, return the neighbouring node
+    def get_neighbouring_node(self, row, col, edge_index):
+        row_inc = [-1, -1, -1,  0,  0,  1,  1,  1]
+        col_inc = [-1,  0,  1, -1,  1, -1,  0,  1]
+
+        next_row = row + row_inc[edge_index]
+        next_col = col + col_inc[edge_index]
+
+        return next_row, next_col
 
 # PRIVATE
     # create adjacency matrix for given pixel art
@@ -72,7 +82,7 @@ class PixelAdjacencyGraph:
     def _prune_edges_from_dissimilar_colours(self):
         for row, col in np.ndindex(self.adjacency_matrix.shape[:2]):
             for i in self._get_edge_indices(row, col):
-                next_row, next_col = self._get_neighbouring_node(row, col, i)
+                next_row, next_col = self.get_neighbouring_node(row, col, i)
                 # TODO (P4): We may want to support colours that are similar but not exactly the same later.
                 if(self.adjacency_matrix[row, col, i] and (self.pixel_art[row, col] != self.pixel_art[next_row, next_col]).any()):
                     self.set_edge(row, col, i, False)
@@ -168,16 +178,6 @@ class PixelAdjacencyGraph:
         return False
 
     '''Other Helper Methods'''
-
-    # Given a node edge index, return the neighbouring node
-    def _get_neighbouring_node(self, row, col, edge_index):
-        row_inc = [-1, -1, -1,  0,  0,  1,  1,  1]
-        col_inc = [-1,  0,  1, -1,  1, -1,  0,  1]
-
-        next_row = row + row_inc[edge_index]
-        next_col = col + col_inc[edge_index]
-
-        return next_row, next_col
     
     # For a given node, return the list of valid edge indices
     def _get_edge_indices(self, row, col):
@@ -221,7 +221,7 @@ class PixelAdjacencyGraph:
             if node_degrees[row, col] <= 2:
                 chain_length += 1
                 for i in range(8):
-                    next_node = self._get_neighbouring_node(row, col, i)
+                    next_node = self.get_neighbouring_node(row, col, i)
                     if self.adjacency_matrix[row, col, i] and not visited[next_node]:
                         visited[next_node] = True
                         nodes_to_visit.append(next_node)
@@ -249,7 +249,7 @@ class PixelAdjacencyGraph:
             while len(to_visit) > 0:
                 x, y = visited.pop()
                 for i in self._get_edge_indices(x, y):
-                    next_node = self._get_neighbouring_node(x, y, i)
+                    next_node = self.get_neighbouring_node(x, y, i)
                     if matrix[x, y, i] and not visited[next_node]:
                         visited[next_node] = True
                         to_visit.append(next_node)

@@ -18,7 +18,7 @@ class _PixelElement:
             f'fill="rgba{self.colour}" '+ \
             f'transform="translate{self.position}"/>'
 
-# Internal class to store pixel data for pixel art, to be used when rendering the SVG.
+# Internal class to store circle SVG data, to be used when rendering the SVG for adjacency graph.
 class _CircleElement:
     def __init__(self, cx, cy, radius, colour):
         self.cx = cx
@@ -29,9 +29,18 @@ class _CircleElement:
     def __str__(self):
         return f'<circle cx="{self.cx}" cy="{self.cy}" r="{self.radius}" fill="rgba{self.colour}"/>'
 
-# TODO (P0): Implement the class below
+# Internal class to store line SVG data, to be used when rendering the SVG for adjacency graph.
 class _LineElement:
-    pass
+    def __init__(self, x1, y1, x2, y2, colour, width):
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+        self.colour = colour
+        self.width = width
+    
+    def __str__(self):
+        return f'<line x1="{self.x1}" y1="{self.y1}" x2="{self.x2}" y2="{self.y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
 
 class SVGRenderer:
     # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
@@ -69,8 +78,12 @@ class SVGRenderer:
                                      mark_erroneous_nodes = True,
                                      node_radius_ratio = 0.2,
                                      node_colour = (0, 255, 0, 0.33),
-                                     node_colour_failure = (255, 0, 0, 1.0)):
+                                     node_colour_failure = (255, 0, 0, 1.0),
+                                     edge_colour = (0, 255, 0, 0.5),
+                                     edge_colour_failure = (255, 0, 0, 1.0),
+                                     edge_width = 2):
         adjacency_matrix = adjacency_graph.get_adjacency_matrix()
+        # Add graph nodes
         if mark_erroneous_nodes:
             is_node_planar = adjacency_graph.get_non_planar_nodes()
 
@@ -85,7 +98,25 @@ class SVGRenderer:
             new_node = _CircleElement(cx, cy, node_radius, rendered_colour)
             self.adjacency_graph_node_svg_elements.append(new_node)
         
-        # TODO (P0): Add edges
+        # Add graph edges
+        for row, col in np.ndindex(adjacency_matrix.shape[:2]):
+            for i in range(4):
+                if(adjacency_matrix[row, col, i]):
+                    next_row, next_col = adjacency_graph.get_neighbouring_node(row, col, i)
+                    x1 = (col+0.5) * self.pixel_size
+                    y1 = (row+0.5) * self.pixel_size
+                    x2 = (next_col+0.5) * self.pixel_size
+                    y2 = (next_row+0.5) * self.pixel_size
+                    rendered_colour = edge_colour
+                    if mark_erroneous_nodes\
+                            and i in [0, 2]\
+                            and not is_node_planar[row, col]\
+                            and not is_node_planar[next_row, next_col]\
+                            and not is_node_planar[row, next_col]\
+                            and not is_node_planar[next_row, col]:
+                        rendered_colour = edge_colour_failure
+                    new_edge = _LineElement(x1, y1, x2, y2, rendered_colour, edge_width)
+                    self.adjacency_graph_edge_svg_elements.append(new_edge)
 
     def get_html_code_for_svg(self, render_pixel_elements = True, render_adjacency_graph = True):
         svg_code = self.get_svg_code(render_pixel_elements, render_adjacency_graph)
@@ -125,6 +156,7 @@ class SVGRenderer:
     
     # Get the size of the canvas that fits all the elements exactly
     # Returns width and height of the canvas in that order
+    # TODO (P1): Check if there is a better way to set canvas size, instead of hardcoding logic for each shape
     def _get_canvas_size(self, render_pixel_elements = True, render_adjacency_graph = True):
         canvas_width = 0
         canvas_height = 0
@@ -134,8 +166,12 @@ class SVGRenderer:
                 canvas_width = max(canvas_width, pixel_element.position[0] + pixel_element.pixel_size)
                 canvas_height = max(canvas_height, pixel_element.position[1] + pixel_element.pixel_size)
 
-        # TODO (P0): Logic to adjust graph size based on adjacency graph
         if render_adjacency_graph:
-            pass
+            for node_element in self.adjacency_graph_node_svg_elements:
+                canvas_width = max(canvas_width, node_element.cx + node_element.radius)
+                canvas_height = max(canvas_height, node_element.cy + node_element.radius)
+            for edge_element in self.adjacency_graph_edge_svg_elements:
+                canvas_width = max(canvas_width, edge_element.x1, edge_element.x2)
+                canvas_height = max(canvas_height, edge_element.y1, edge_element.y2)
             
         return canvas_width, canvas_height
