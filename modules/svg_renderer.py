@@ -1,22 +1,8 @@
 import numpy as np
 
+# TODO (P2): Specify data types for all parameters 
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
-
-'''
-SVGRenderer:
-    
-    def __init__(self)
-        self.pixel_svg_elements
-        self.adjacency_graph_node_svg_elements
-        self.adjacency_graph_edge_svg_elements
-    
-    TODO def get_html_code_for_total_svg(self)
-    def set_pixel_art_elements(self, pixel_art, pixel_size=20)
-    TODO def set_adjacency_graph_elements(self, adjacency_graph)
-
-    def _get_canvas_size(self)
-'''
 
 # Internal class to store pixel data for pixel art, to be used when rendering the SVG.
 class _PixelElement:
@@ -32,9 +18,16 @@ class _PixelElement:
             f'fill="rgba{self.colour}" '+ \
             f'transform="translate{self.position}"/>'
 
-# TODO (P0): Implement the class below
-class _SphereElement:
-    pass
+# Internal class to store pixel data for pixel art, to be used when rendering the SVG.
+class _CircleElement:
+    def __init__(self, cx, cy, radius, colour):
+        self.cx = cx
+        self.cy = cy
+        self.radius = radius
+        self.colour = colour
+
+    def __str__(self):
+        return f'<circle cx="{self.cx}" cy="{self.cy}" r="{self.radius}" fill="rgba{self.colour}"/>'
 
 # TODO (P0): Implement the class below
 class _LineElement:
@@ -42,7 +35,9 @@ class _LineElement:
 
 class SVGRenderer:
     # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
-    def __init__(self, pixel_art = None, pixel_size = 20):
+    def __init__(self, pixel_art = None, pixel_size = 20, adjacency_graph = None):
+        self.pixel_size = pixel_size
+        
         self.pixel_elements = []
         self.adjacency_graph_node_svg_elements = []
         self.adjacency_graph_edge_svg_elements = []
@@ -50,12 +45,13 @@ class SVGRenderer:
         if pixel_art is not None:
             self.set_pixel_elements(pixel_art, pixel_size)
 
+        if adjacency_graph is not None:
+            self.set_adjacency_graph_elements(adjacency_graph)
+
     def __str__(self):
         return self.get_html_code_for_svg()
 
 # PUBLIC
-    def get_html_code_for_total_svg(self):
-        pass
 
     # For a given pixel art image given as a numpy array, save it 
     def set_pixel_elements(self, pixel_art, pixel_size = 20):
@@ -66,6 +62,30 @@ class SVGRenderer:
 
             pixel_element = _PixelElement(pixel_size, pixel_colour, pixel_position)
             self.pixel_elements.append(pixel_element)
+
+    # Given an adjacency graph, set the node adn edge SVG elements that can be rendered
+    def set_adjacency_graph_elements(self,
+                                     adjacency_graph,
+                                     mark_erroneous_nodes = True,
+                                     node_radius_ratio = 0.2,
+                                     node_colour = (0, 255, 0, 0.33),
+                                     node_colour_failure = (255, 0, 0, 1.0)):
+        adjacency_matrix = adjacency_graph.get_adjacency_matrix()
+        if mark_erroneous_nodes:
+            is_node_planar = adjacency_graph.get_non_planar_nodes()
+
+        node_radius = self.pixel_size * node_radius_ratio
+
+        for row, col in np.ndindex(adjacency_matrix.shape[:2]):
+            rendered_colour = node_colour
+            if mark_erroneous_nodes and not is_node_planar[row, col]:
+                rendered_colour = node_colour_failure
+            cx = (col+0.5) * self.pixel_size
+            cy = (row+0.5) * self.pixel_size
+            new_node = _CircleElement(cx, cy, node_radius, rendered_colour)
+            self.adjacency_graph_node_svg_elements.append(new_node)
+        
+        # TODO (P0): Add edges
 
     def get_html_code_for_svg(self, render_pixel_elements = True, render_adjacency_graph = True):
         svg_code = self.get_svg_code(render_pixel_elements, render_adjacency_graph)
@@ -86,10 +106,10 @@ class SVGRenderer:
 
         if render_pixel_elements:
             svg_elements_code += '\n'.join('\t' + str(pixel_element) for pixel_element in self.pixel_elements)
-        
-        # TODO (P0): Render adjacency graph elements
+
         if render_adjacency_graph:
-            pass
+            svg_elements_code += '\n'.join('\t' + str(node_element) for node_element in self.adjacency_graph_node_svg_elements)
+            svg_elements_code += '\n'.join('\t' + str(edge_element) for edge_element in self.adjacency_graph_edge_svg_elements)
 
         svg_code = svg_open_code + '\n' + svg_elements_code + '\n' + svg_close_code
         return svg_code
