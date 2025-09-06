@@ -4,44 +4,6 @@ import numpy as np
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 
-# Internal class to store pixel data for pixel art, to be used when rendering the SVG.
-class _PixelElement:
-    def __init__(self, pixel_size = 20, colour = (0,0,0,0), position = (0,0)):
-        self.pixel_size = pixel_size
-        self.colour = colour
-        self.position = position
-    
-    def __str__(self):
-        return f'<rect '+ \
-            f'width="{self.pixel_size}" '+ \
-            f'height="{self.pixel_size}" '+ \
-            f'fill="rgba{self.colour}" '+ \
-            f'transform="translate{self.position}"/>'
-
-# Internal class to store circle SVG data, to be used when rendering the SVG for adjacency graph.
-class _CircleElement:
-    def __init__(self, cx, cy, radius, colour):
-        self.cx = cx
-        self.cy = cy
-        self.radius = radius
-        self.colour = colour
-
-    def __str__(self):
-        return f'<circle cx="{self.cx}" cy="{self.cy}" r="{self.radius}" fill="rgba{self.colour}"/>'
-
-# Internal class to store line SVG data, to be used when rendering the SVG for adjacency graph.
-class _LineElement:
-    def __init__(self, x1, y1, x2, y2, colour, width):
-        self.x1 = x1
-        self.x2 = x2
-        self.y1 = y1
-        self.y2 = y2
-        self.colour = colour
-        self.width = width
-    
-    def __str__(self):
-        return f'<line x1="{self.x1}" y1="{self.y1}" x2="{self.x2}" y2="{self.y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
-
 class SVGRenderer:
     # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
     def __init__(self, pixel_art = None, pixel_size = 20, adjacency_graph = None):
@@ -118,6 +80,7 @@ class SVGRenderer:
                     new_edge = _LineElement(x1, y1, x2, y2, rendered_colour, edge_width)
                     self.adjacency_graph_edge_svg_elements.append(new_edge)
 
+    # TODO (P3): Take padding as a paramter
     def get_html_code_for_svg(self, render_pixel_elements = True, render_adjacency_graph = True):
         svg_code = self.get_svg_code(render_pixel_elements, render_adjacency_graph)
         svg_code_indented = '\n'.join('\t' + line for line in svg_code.splitlines())
@@ -130,7 +93,7 @@ class SVGRenderer:
     def get_svg_code(self, render_pixel_elements = True, render_adjacency_graph = True):
         canvas_width, canvas_height = self._get_canvas_size(render_pixel_elements, render_adjacency_graph)
 
-        svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" style="background-color: transparent;">'
+        svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
         svg_close_code = '</svg>'
 
         svg_elements_code = ''
@@ -144,19 +107,21 @@ class SVGRenderer:
 
         svg_code = svg_open_code + '\n' + svg_elements_code + '\n' + svg_close_code
         return svg_code
-    
-    # TODO (P1): Implement this method
-    def export_svg_code(self, export_path):
-        pass
+
+    def export_svg_html_code(self, export_path, render_pixel_elements = True, render_adjacency_graph = True):
+        html_code = self.get_html_code_for_svg(render_pixel_elements, render_adjacency_graph)
+        with open(export_path, "w", encoding="utf-8") as f:
+            f.write(html_code)
 
 # PRIVATE
+
     # Given colour in a numpy array format, return it in a tuple format
     def _get_colour_as_tuple(self, colour_as_array):
         return tuple(int(x) for x in np.array(colour_as_array))
     
     # Get the size of the canvas that fits all the elements exactly
     # Returns width and height of the canvas in that order
-    # TODO (P1): Check if there is a better way to set canvas size, instead of hardcoding logic for each shape
+    # TODO (P3): Check if there is a better way to set canvas size, instead of hardcoding logic for each shape
     def _get_canvas_size(self, render_pixel_elements = True, render_adjacency_graph = True):
         canvas_width = 0
         canvas_height = 0
@@ -175,3 +140,41 @@ class SVGRenderer:
                 canvas_height = max(canvas_height, edge_element.y1, edge_element.y2)
             
         return canvas_width, canvas_height
+    
+# Internal class to store pixel data for pixel art, to be used when rendering the SVG.
+class _PixelElement:
+    def __init__(self, pixel_size = 20, colour = (0,0,0,0), position = (0,0)):
+        self.pixel_size = pixel_size
+        self.colour = colour
+        self.position = position
+    
+    def __str__(self):
+        return f'<rect '+ \
+            f'width="{self.pixel_size}" '+ \
+            f'height="{self.pixel_size}" '+ \
+            f'fill="rgba{self.colour}" '+ \
+            f'transform="translate{self.position}"/>'
+
+# Internal class to store circle SVG data, to be used when rendering the SVG for adjacency graph.
+class _CircleElement:
+    def __init__(self, cx, cy, radius, colour):
+        self.cx = cx
+        self.cy = cy
+        self.radius = radius
+        self.colour = colour
+
+    def __str__(self):
+        return f'<circle cx="{self.cx}" cy="{self.cy}" r="{self.radius}" fill="rgba{self.colour}"/>'
+
+# Internal class to store line SVG data, to be used when rendering the SVG for adjacency graph.
+class _LineElement:
+    def __init__(self, x1, y1, x2, y2, colour, width):
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+        self.colour = colour
+        self.width = width
+    
+    def __str__(self):
+        return f'<line x1="{self.x1}" y1="{self.y1}" x2="{self.x2}" y2="{self.y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
