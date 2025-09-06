@@ -1,6 +1,5 @@
 import numpy as np
 
-# TODO (P2): Specify data types for all parameters 
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 
