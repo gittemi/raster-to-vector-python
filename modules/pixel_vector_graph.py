@@ -13,7 +13,7 @@ class PixelVectorGraph:
         self.graph_nodes_list = []
         self.graph_edges_list = []
         self.graph_nodes_grid_box = []
-        self.svg_renderer = SVGRenderer()
+        self.svg_renderer = SVGRenderer(pixel_art.get_pixel_art_image())
 
 # PUBLIC
 

@@ -6,8 +6,10 @@ import numpy as np
 
 class SVGRenderer:
     # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
+    # TODO (P1): Consider renaming pixel_size to scale_factor to unify terminology
     def __init__(self, pixel_art = None, pixel_size = 20, adjacency_graph = None, dual_graph = None):
         self.pixel_size = pixel_size
+        self.pixel_art = pixel_art
         
         self.pixel_elements = []
         self.adjacency_graph_node_svg_elements = []
@@ -84,7 +86,6 @@ class SVGRenderer:
                     new_edge = _LineElement(x1, y1, x2, y2, rendered_colour, edge_width)
                     self.adjacency_graph_edge_svg_elements.append(new_edge)
 
-    # TODO (P0): Implement this method
     def set_dual_graph_elements(self, dual_graph):
         self.dual_graph_elements = []
         visited = np.zeros(dual_graph.number_of_edges, dtype=bool)
@@ -118,7 +119,7 @@ class SVGRenderer:
         canvas_width, canvas_height = self._get_canvas_size(render_pixel_elements, render_adjacency_graph)
 
         # TODO (P0) : Change back to canvas_width and canvas_height
-        svg_open_code = f'<svg width="400" height="500" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
+        svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
         svg_close_code = '</svg>'
 
         svg_elements_code = ''
@@ -151,6 +152,11 @@ class SVGRenderer:
     # Returns width and height of the canvas in that order
     # TODO (P3): Check if there is a better way to set canvas size, instead of hardcoding logic for each shape
     def _get_canvas_size(self, render_pixel_elements = True, render_adjacency_graph = True):
+        if self.pixel_art is not None:
+            canvas_width = self.pixel_art.shape[1] * self.pixel_size
+            canvas_height = self.pixel_art.shape[0] * self.pixel_size
+            return canvas_width, canvas_height
+
         canvas_width = 0
         canvas_height = 0
 

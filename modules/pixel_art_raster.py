@@ -14,33 +14,31 @@ class _Pixel:
 
 class PixelArtRaster:
     def __init__(self, input_raster = None, reduce_input_raster = False):
+        self.pixel_count = 0
         self.input_raster = input_raster
         self.reduce_input_raster = reduce_input_raster
         self.pixel_grid = None
         self.input_raster_file_path = None
 
-        if reduce_input_raster:
-            self.input_raster = self._reduce_input_raster()
-
-        self._create_pixel_grid(self.input_raster)
-
-        if self.pixel_grid is not None:
-            self.svg_renderer = SVGRenderer(self.pixel_grid)
-
 # PUBLIC
 
     # Import an input raster image.
     # If none is specified via parameter, create a window to allow user to select a PNG.
-    def import_input_raster(self, input_raster = None, reduce_input_raster = False):
+    def import_input_raster(self, input_raster = None, prompt_user_for_input = True, reduce_input_raster = False, add_padding = True):
         self.input_raster = input_raster
         if input_raster is None:
+            if not prompt_user_for_input:
+                return
             self.input_raster = self._select_input_raster_from_window(verbose = False)
 
         if reduce_input_raster:
             self.input_raster = self._reduce_input_raster()
         self._create_pixel_grid(self.input_raster)
+
+        if add_padding:
+            self.add_padding_to_pixel_grid()
         
-        self.svg_renderer = SVGRenderer(self.get_pixel_art_image())
+        self.svg_renderer = SVGRenderer(pixel_art = self.get_pixel_art_image())
     
     def get_pixel_art_image(self):
         pixel_art_image = np.zeros((self.pixel_grid.shape[0], self.pixel_grid.shape[1], 4))
@@ -62,17 +60,38 @@ class PixelArtRaster:
 
 # PRIVATE
 
+    def _create_pixel(self, colour):
+        id = self.pixel_count
+        self.pixel_count += 1
+        new_pixel = _Pixel(id, colour)
+        return new_pixel
+
     def _create_pixel_grid(self, image):
         if image is None:
             return
         
         self.pixel_grid = np.empty(image.shape[:2], dtype = object)
-        num_pixels = 0
         for row, col in np.ndindex(image.shape[:2]):
-            id = num_pixels
-            num_pixels += 1
             colour = image[row, col]
-            self.pixel_grid[row, col] = _Pixel(id, colour)
+            self.pixel_grid[row, col] = self._create_pixel(colour)
+
+    # Add a 1 transparent pixel padding to the borders of the image
+    def add_padding_to_pixel_grid(self):
+        old_pixel_grid = self.pixel_grid
+        self.pixel_grid = np.empty((old_pixel_grid.shape[0]+2, old_pixel_grid.shape[1]+2), dtype=object)
+
+        # Copy referernces to existing pixels
+        for row, col in np.ndindex(old_pixel_grid.shape[:2]):
+            self.pixel_grid[row+1, col+1] = old_pixel_grid[row, col]
+
+        # Add transparent pixels to borders
+        transparent_colour = old_pixel_grid[0,0].colour
+        for row in range(self.pixel_grid.shape[0]):
+            self.pixel_grid[row][0] = self._create_pixel(transparent_colour)
+            self.pixel_grid[row][self.pixel_grid.shape[1]-1] = self._create_pixel(transparent_colour)
+        for col in range(1, self.pixel_grid.shape[1]-1):
+            self.pixel_grid[0][col] = self._create_pixel(transparent_colour)
+            self.pixel_grid[self.pixel_grid.shape[0]-1][col] = self._create_pixel(transparent_colour)
 
     # Input raster might be a big image where each pixel from the pixel art might take up multiple pixels inthe raster.
     # In these cases, we want to reduce the input raster.
