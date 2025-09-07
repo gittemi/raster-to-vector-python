@@ -7,15 +7,22 @@ from IPython.display import SVG, display, HTML
 
 from svg_renderer import SVGRenderer
 
+class _Pixel:
+    def __init__(self, id = None, colour = None):
+        self.id = id
+        self.colour = colour
+
 class PixelArtRaster:
     def __init__(self, input_raster = None, reduce_input_raster = False):
         self.input_raster = input_raster
         self.reduce_input_raster = reduce_input_raster
+        self.pixel_art = None
         self.input_raster_file_path = None
 
-        self.pixel_art = self.input_raster
         if reduce_input_raster:
-            self.pixel_art = self._reduce_input_raster()
+            self.input_raster = self._reduce_input_raster()
+
+        self._create_pixel_art(self.input_raster)
 
         if self.pixel_art is not None:
             self.svg_renderer = SVGRenderer(self.pixel_art)
@@ -28,17 +35,19 @@ class PixelArtRaster:
         self.input_raster = input_raster
         if input_raster is None:
             self.input_raster = self._select_input_raster_from_window(verbose = False)
-        
-        self.pixel_art = self.input_raster
+
         if reduce_input_raster:
-            self.pixel_art = self._reduce_input_raster()
+            self.input_raster = self._reduce_input_raster()
+        self._create_pixel_art(self.input_raster)
         
-        self.svg_renderer = SVGRenderer(self.pixel_art)
+        self.svg_renderer = SVGRenderer(self.get_pixel_art_image())
     
-    def get_pixel_art_image(self, deep_copy = True):
-        if deep_copy:
-            return np.array(self.pixel_art)
-        return self.pixel_art
+    def get_pixel_art_image(self):
+        pixel_art_image = np.zeros((self.pixel_art.shape[0], self.pixel_art.shape[1], 4))
+        for row, col in np.ndindex(pixel_art_image.shape[:2]):
+            pixel_art_image[row, col] = self.pixel_art[row, col].colour
+        
+        return pixel_art_image
 
     def render(self):
         return HTML(self.svg_renderer.get_html_code_for_svg())
@@ -52,6 +61,18 @@ class PixelArtRaster:
         cv2.imwrite(export_path, saved_art)
 
 # PRIVATE
+
+    def _create_pixel_art(self, image):
+        if image is None:
+            return
+        
+        self.pixel_art = np.empty(image.shape[:2], dtype = object)
+        num_pixels = 0
+        for row, col in np.ndindex(image.shape[:2]):
+            id = num_pixels
+            num_pixels += 1
+            colour = image[row, col]
+            self.pixel_art[row, col] = _Pixel(id, colour)
 
     # Input raster might be a big image where each pixel from the pixel art might take up multiple pixels inthe raster.
     # In these cases, we want to reduce the input raster.

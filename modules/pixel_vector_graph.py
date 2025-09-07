@@ -38,7 +38,7 @@ class PixelVectorGraph:
     - 4 - 3 -
     - - 7 - -
     '''
-    def (self):
+    def _initialize_graph_nodes(self):
         # TODO (P4): If adjacency_graph is None, throw an exception
         adjacency_matrix = self.adjacency_graph.get_adjacency_matrix()
         self.graph_nodes_grid_box = np.empty((adjacency_matrix.shape[0]-1, adjacency_matrix.shape[1]-1, 9), dtype=object)
