@@ -106,6 +106,7 @@ class SVGRenderer:
                         break
     
     # TODO (P3): Take padding as a paramter
+    # TODO (P1): Remove render_pixel_elements and render_dual_graph as parameters
     def get_html_code_for_svg(self, render_pixel_elements = True, render_adjacency_graph = True, render_dual_graph = False):
         svg_code = self.get_svg_code(render_pixel_elements, render_adjacency_graph, render_dual_graph)
         svg_code_indented = '\n'.join('\t' + line for line in svg_code.splitlines())
@@ -115,8 +116,9 @@ class SVGRenderer:
         html_code = html_open_code + '\n' + svg_code_indented + '\n' + html_close_code
         return html_code
 
+    # TODO (P1): Remove render_pixel_elements and render_dual_graph as parameters
     def get_svg_code(self, render_pixel_elements = True, render_adjacency_graph = True, render_dual_graph = False):
-        canvas_width, canvas_height = self._get_canvas_size(render_pixel_elements, render_adjacency_graph)
+        canvas_width, canvas_height = self._get_canvas_size()
 
         # TODO (P0) : Change back to canvas_width and canvas_height
         svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" shape-rendering="crispEdges" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
@@ -150,34 +152,31 @@ class SVGRenderer:
     
     # Get the size of the canvas that fits all the elements exactly
     # Returns width and height of the canvas in that order
-    # TODO (P3): Check if there is a better way to set canvas size, instead of hardcoding logic for each shape
-    def _get_canvas_size(self, render_pixel_elements = True, render_adjacency_graph = True):
-        if self.pixel_art is not None:
-            canvas_width = self.pixel_art.shape[1] * self.pixel_size
-            canvas_height = self.pixel_art.shape[0] * self.pixel_size
-            return canvas_width, canvas_height
-
+    def _get_canvas_size(self):
         canvas_width = 0
         canvas_height = 0
-
-        if render_pixel_elements:
-            for pixel_element in self.pixel_elements:
-                canvas_width = max(canvas_width, pixel_element.position[0] + pixel_element.pixel_size)
-                canvas_height = max(canvas_height, pixel_element.position[1] + pixel_element.pixel_size)
-
-        if render_adjacency_graph:
-            for node_element in self.adjacency_graph_node_svg_elements:
-                canvas_width = max(canvas_width, node_element.cx + node_element.radius)
-                canvas_height = max(canvas_height, node_element.cy + node_element.radius)
-            for edge_element in self.adjacency_graph_edge_svg_elements:
-                canvas_width = max(canvas_width, edge_element.x1, edge_element.x2)
-                canvas_height = max(canvas_height, edge_element.y1, edge_element.y2)
-            
+        for element in self.pixel_elements \
+            + self.adjacency_graph_node_svg_elements \
+            + self.adjacency_graph_edge_svg_elements \
+            + self.dual_graph_elements:
+            canvas_width = max(canvas_width, element.bounds[0])
+            canvas_height = max(canvas_height, element.bounds[1])
         return canvas_width, canvas_height
-    
+
+# All SVG element classes should inherit this. Used to determine appropriate canvas size 
+class _ElementBounds:
+    def __init__(self, points=[]):
+        self.bounds = [0,0]
+        for point in points:
+            self.bounds = [
+                max(self.bounds[0], point[0]),
+                max(self.bounds[1], point[1])
+            ]
+
 # Internal class to store pixel data for pixel art, to be used when rendering the SVG.
-class _PixelElement:
+class _PixelElement(_ElementBounds):
     def __init__(self, pixel_size = 20, colour = (0,0,0,0), position = (0,0)):
+        super().__init__([[position[0] + pixel_size, position[1] + pixel_size]])
         self.pixel_size = pixel_size
         self.colour = colour
         self.position = position
@@ -190,8 +189,9 @@ class _PixelElement:
             f'transform="translate{self.position}"/>'
 
 # Internal class to store circle SVG data, to be used when rendering the SVG for adjacency graph.
-class _CircleElement:
+class _CircleElement(_ElementBounds):
     def __init__(self, cx, cy, radius, colour):
+        super().__init__([[cx+radius, cy+radius]])
         self.cx = cx
         self.cy = cy
         self.radius = radius
@@ -201,8 +201,9 @@ class _CircleElement:
         return f'<circle cx="{self.cx}" cy="{self.cy}" r="{self.radius}" fill="rgba{self.colour}"/>'
 
 # Internal class to store line SVG data, to be used when rendering the SVG for adjacency graph.
-class _LineElement:
+class _LineElement(_ElementBounds):
     def __init__(self, x1, y1, x2, y2, colour, width):
+        super().__init__([[x1,y1], [x2,y2]])
         self.x1 = x1
         self.x2 = x2
         self.y1 = y1
@@ -213,8 +214,9 @@ class _LineElement:
     def __str__(self):
         return f'<line x1="{self.x1}" y1="{self.y1}" x2="{self.x2}" y2="{self.y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
     
-class _PolygonElement:
+class _PolygonElement(_ElementBounds):
     def __init__(self, points = [], colour = (0,0,0,0), scale_factor = 20):
+        super().__init__([[point[0]*scale_factor, point[1]*scale_factor] for point in points])
         self.points = points
         self.colour = colour
         self.scale_factor = scale_factor
