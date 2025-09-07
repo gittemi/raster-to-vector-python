@@ -119,7 +119,7 @@ class SVGRenderer:
         canvas_width, canvas_height = self._get_canvas_size(render_pixel_elements, render_adjacency_graph)
 
         # TODO (P0) : Change back to canvas_width and canvas_height
-        svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
+        svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" shape-rendering="crispEdges" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
         svg_close_code = '</svg>'
 
         svg_elements_code = ''
@@ -223,4 +223,4 @@ class _PolygonElement:
         points_string = ''
         for point in self.points:
             points_string += str(point[0]*self.scale_factor) + ',' + str(point[1]*self.scale_factor) + ' '
-        return f'<polygon points="{points_string}" fill="rgba{self.colour}"/>'
+        return f'<polygon points="{points_string}" fill="rgba{self.colour}" />'
