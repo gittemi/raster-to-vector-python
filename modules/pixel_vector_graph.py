@@ -26,6 +26,7 @@ class PixelVectorGraph:
             self.adjacency_graph = adjacency_graph
 
         self._initialize_graph_nodes()
+        self._initialize_graph_edges()
 
 # PRIVATE
 
@@ -72,9 +73,60 @@ class PixelVectorGraph:
                 self.graph_nodes_grid_box[row, col, 8] = self.graph_nodes_grid_box[row, col-1, 6]
 
 
-    # TODO (P0): Implement this method
     def _initialize_graph_edges(self):
-        pass
+        adjacency_matrix = self.adjacency_graph.get_adjacency_matrix
+
+        # For each grid box, initialise the internal edges
+        for row, col in np.ndindex(self.graph_nodes_grid_box.shape[:2]):
+            # If dexter diagonal is present
+            if adjacency_matrix[row, col, 7]:
+                grid_box = self.graph_nodes_grid_box[row, col]
+                self._create_new_edge(grid_box[5], grid_box[2], self.pixel_art[row, col])
+                self._create_new_edge(grid_box[2], grid_box[4], self.pixel_art[row, col])
+                self._create_new_edge(grid_box[4], grid_box[8], self.pixel_art[row, col])
+                self._create_new_edge(grid_box[6], grid_box[2], self.pixel_art[row, col+1])
+                self._create_new_edge(grid_box[2], grid_box[5], self.pixel_art[row, col+1])
+                self._create_new_edge(grid_box[8], grid_box[4], self.pixel_art[row+1, col])
+                self._create_new_edge(grid_box[4], grid_box[7], self.pixel_art[row+1, col])
+                self._create_new_edge(grid_box[7], grid_box[4], self.pixel_art[row+1, col+1])
+                self._create_new_edge(grid_box[4], grid_box[2], self.pixel_art[row+1, col+1])
+                self._create_new_edge(grid_box[2], grid_box[6], self.pixel_art[row+1, col+1])
+
+            # If sinister diagonal is present
+            elif adjacency_matrix[row+1, col, 2]:
+                grid_box = self.graph_nodes_grid_box[row, col]
+                self._create_new_edge(grid_box[5], grid_box[1], self.pixel_art[row, col])
+                self._create_new_edge(grid_box[1], grid_box[8], self.pixel_art[row, col])
+                self._create_new_edge(grid_box[6], grid_box[3], self.pixel_art[row, col+1])
+                self._create_new_edge(grid_box[3], grid_box[1], self.pixel_art[row, col+1])
+                self._create_new_edge(grid_box[1], grid_box[5], self.pixel_art[row, col+1])
+                self._create_new_edge(grid_box[8], grid_box[1], self.pixel_art[row+1, col])
+                self._create_new_edge(grid_box[1], grid_box[3], self.pixel_art[row+1, col])
+                self._create_new_edge(grid_box[3], grid_box[7], self.pixel_art[row+1, col])
+                self._create_new_edge(grid_box[7], grid_box[3], self.pixel_art[row+1, col+1])
+                self._create_new_edge(grid_box[3], grid_box[6], self.pixel_art[row+1, col+1])
+            
+            # If neither diagonal is present
+            else:
+                grid_box = self.graph_nodes_grid_box[row, col]
+                self._create_new_edge(grid_box[5], grid_box[0], self.pixel_art[row, col])
+                self._create_new_edge(grid_box[0], grid_box[8], self.pixel_art[row, col])
+                self._create_new_edge(grid_box[6], grid_box[0], self.pixel_art[row, col+1])
+                self._create_new_edge(grid_box[0], grid_box[5], self.pixel_art[row, col+1])
+                self._create_new_edge(grid_box[8], grid_box[0], self.pixel_art[row+1, col])
+                self._create_new_edge(grid_box[0], grid_box[7], self.pixel_art[row+1, col])
+                self._create_new_edge(grid_box[7], grid_box[0], self.pixel_art[row+1, col+1])
+                self._create_new_edge(grid_box[0], grid_box[6], self.pixel_art[row+1, col+1])
+
+            # TODO (P0): Set border edges
+
+        # For rach intialised edge, set its next_edge. Note that every edge will have a next_edge
+        for edge in self.graph_edges_list:
+            next_node = edge.end_node
+            for next_edge in next_node.edge_list:
+                if edge.pixel.id == next_edge.pixel.id:
+                    edge.next_edge = next_edge
+                    break
 
     # This method wraps the creation of a new node object
     # and adds the node to the list so they are iterable
@@ -82,12 +134,19 @@ class PixelVectorGraph:
         id = self.number_of_nodes
         self.number_of_nodes += 1
         new_node = _PixelVectorGraphNode(id, position, offset)
-        self.graph_nodes_list.append(new_node  )
+        self.graph_nodes_list.append(new_node)
         return new_node
     
-    # TODO (P0): Implement this method
-    def _create_new_edge(self):
-        pass
+    # This method wraps the creation of a new edge object
+    # and adds the edge to the list so they are iterable.
+    # Also adds the edge t0 the adjacency list of the start_node
+    def _create_new_edge(self, start_node = None, end_node = None, pixel = None, next_edge = None):
+        id = self.number_of_edges
+        self.number_of_edges += 1
+        new_edge = _PixelVectorGraphEdge(start_node,  end_node,  pixel, next_edge)
+        self.graph_edges_list.append(new_edge)
+        start_node.edge_list.append(new_edge)
+        return new_edge
 
     # Get the position of the node in (y,x) coordinates, with (0,0) as the top-left corner,
     # x being the right direction, and y being the downward direction.
@@ -110,8 +169,8 @@ class _PixelVectorGraphNode:
         self.edge_list = []
 
 class _PixelVectorGraphEdge:
-    def __init__(self, start_node = None, end_node = None, colour = None, next_edge = None):
+    def __init__(self, start_node = None, end_node = None, pixel = None, next_edge = None):
         self.start_node = start_node
         self.end_node = end_node
-        self.colour = colour
+        self.pixel = pixel
         self.next_edge = next_edge
