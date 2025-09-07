@@ -223,4 +223,4 @@ class _PolygonElement:
         points_string = ''
         for point in self.points:
             points_string += str(point[0]*self.scale_factor) + ',' + str(point[1]*self.scale_factor) + ' '
-        return f'<polygon points="{points_string}" fill="rgba{self.colour}", stroke = "rgba{self.colour}" />'
+        return f'<polygon points="{points_string}" fill="rgba{self.colour}"/>'
