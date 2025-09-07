@@ -1,22 +1,27 @@
 import numpy as np
+# from pixel_vector_graph import PixelVectorGraph
 
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 
 class SVGRenderer:
     # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
-    def __init__(self, pixel_art = None, pixel_size = 20, adjacency_graph = None):
+    def __init__(self, pixel_art = None, pixel_size = 20, adjacency_graph = None, dual_graph = None):
         self.pixel_size = pixel_size
         
         self.pixel_elements = []
         self.adjacency_graph_node_svg_elements = []
         self.adjacency_graph_edge_svg_elements = []
+        self.dual_graph_elements = []
 
         if pixel_art is not None:
             self.set_pixel_elements(pixel_art, pixel_size)
 
         if adjacency_graph is not None:
             self.set_adjacency_graph_elements(adjacency_graph)
+        
+        if dual_graph is not None:
+            self.set_dual_graph_elements(dual_graph)
 
     def __str__(self):
         return self.get_html_code_for_svg()
@@ -79,9 +84,29 @@ class SVGRenderer:
                     new_edge = _LineElement(x1, y1, x2, y2, rendered_colour, edge_width)
                     self.adjacency_graph_edge_svg_elements.append(new_edge)
 
+    # TODO (P0): Implement this method
+    def set_dual_graph_elements(self, dual_graph):
+        self.dual_graph_elements = []
+        visited = np.zeros(dual_graph.number_of_edges, dtype=bool)
+        for edge in dual_graph.graph_edges_list:
+            if not visited[edge.id]:
+                # Visit the edges. If they are in a loop, add the polygon in dual_graph_elements
+                start_edge = edge
+                points = []
+                colour = edge.pixel.colour
+                while edge is not None:
+                    visited[edge.id] = True
+                    y, x = edge.start_node.get_coordinates()
+                    points.append([x,y])
+                    edge = edge.next_edge
+                    if edge is not None and edge.id == start_edge.id:
+                        new_polygon = _PolygonElement(points, self._get_colour_as_tuple(colour))
+                        self.dual_graph_elements.append(new_polygon)
+                        break
+    
     # TODO (P3): Take padding as a paramter
-    def get_html_code_for_svg(self, render_pixel_elements = True, render_adjacency_graph = True):
-        svg_code = self.get_svg_code(render_pixel_elements, render_adjacency_graph)
+    def get_html_code_for_svg(self, render_pixel_elements = True, render_adjacency_graph = True, render_dual_graph = False):
+        svg_code = self.get_svg_code(render_pixel_elements, render_adjacency_graph, render_dual_graph)
         svg_code_indented = '\n'.join('\t' + line for line in svg_code.splitlines())
         html_open_code = '<div style="background-color: transparent; padding: 0px;">'
         html_close_code = '</div>'
@@ -89,10 +114,11 @@ class SVGRenderer:
         html_code = html_open_code + '\n' + svg_code_indented + '\n' + html_close_code
         return html_code
 
-    def get_svg_code(self, render_pixel_elements = True, render_adjacency_graph = True):
+    def get_svg_code(self, render_pixel_elements = True, render_adjacency_graph = True, render_dual_graph = False):
         canvas_width, canvas_height = self._get_canvas_size(render_pixel_elements, render_adjacency_graph)
 
-        svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
+        # TODO (P0) : Change back to canvas_width and canvas_height
+        svg_open_code = f'<svg width="400" height="500" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
         svg_close_code = '</svg>'
 
         svg_elements_code = ''
@@ -103,6 +129,9 @@ class SVGRenderer:
         if render_adjacency_graph:
             svg_elements_code += '\n'.join('\t' + str(node_element) for node_element in self.adjacency_graph_node_svg_elements)
             svg_elements_code += '\n'.join('\t' + str(edge_element) for edge_element in self.adjacency_graph_edge_svg_elements)
+
+        if render_dual_graph:
+            svg_elements_code += '\n'.join('\t' + str(poly_element) for poly_element in self.dual_graph_elements)
 
         svg_code = svg_open_code + '\n' + svg_elements_code + '\n' + svg_close_code
         return svg_code
@@ -177,3 +206,15 @@ class _LineElement:
     
     def __str__(self):
         return f'<line x1="{self.x1}" y1="{self.y1}" x2="{self.x2}" y2="{self.y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
+    
+class _PolygonElement:
+    def __init__(self, points = [], colour = (0,0,0,0), scale_factor = 20):
+        self.points = points
+        self.colour = colour
+        self.scale_factor = scale_factor
+    
+    def __str__(self):
+        points_string = ''
+        for point in self.points:
+            points_string += str(point[0]*self.scale_factor) + ',' + str(point[1]*self.scale_factor) + ' '
+        return f'<polygon points="{points_string}" fill="rgba{self.colour}", stroke = "rgba{self.colour}" />'

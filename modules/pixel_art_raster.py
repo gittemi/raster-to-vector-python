@@ -16,16 +16,16 @@ class PixelArtRaster:
     def __init__(self, input_raster = None, reduce_input_raster = False):
         self.input_raster = input_raster
         self.reduce_input_raster = reduce_input_raster
-        self.pixel_art = None
+        self.pixel_grid = None
         self.input_raster_file_path = None
 
         if reduce_input_raster:
             self.input_raster = self._reduce_input_raster()
 
-        self._create_pixel_art(self.input_raster)
+        self._create_pixel_grid(self.input_raster)
 
-        if self.pixel_art is not None:
-            self.svg_renderer = SVGRenderer(self.pixel_art)
+        if self.pixel_grid is not None:
+            self.svg_renderer = SVGRenderer(self.pixel_grid)
 
 # PUBLIC
 
@@ -38,14 +38,14 @@ class PixelArtRaster:
 
         if reduce_input_raster:
             self.input_raster = self._reduce_input_raster()
-        self._create_pixel_art(self.input_raster)
+        self._create_pixel_grid(self.input_raster)
         
         self.svg_renderer = SVGRenderer(self.get_pixel_art_image())
     
     def get_pixel_art_image(self):
-        pixel_art_image = np.zeros((self.pixel_art.shape[0], self.pixel_art.shape[1], 4))
+        pixel_art_image = np.zeros((self.pixel_grid.shape[0], self.pixel_grid.shape[1], 4))
         for row, col in np.ndindex(pixel_art_image.shape[:2]):
-            pixel_art_image[row, col] = self.pixel_art[row, col].colour
+            pixel_art_image[row, col] = self.pixel_grid[row, col].colour
         
         return pixel_art_image
 
@@ -57,22 +57,22 @@ class PixelArtRaster:
         if export_path is None:
             export_path = self.input_raster_file_path
 
-        saved_art = cv2.cvtColor(self.pixel_art, cv2.COLOR_BGRA2RGBA)
+        saved_art = cv2.cvtColor(self.pixel_grid, cv2.COLOR_BGRA2RGBA)
         cv2.imwrite(export_path, saved_art)
 
 # PRIVATE
 
-    def _create_pixel_art(self, image):
+    def _create_pixel_grid(self, image):
         if image is None:
             return
         
-        self.pixel_art = np.empty(image.shape[:2], dtype = object)
+        self.pixel_grid = np.empty(image.shape[:2], dtype = object)
         num_pixels = 0
         for row, col in np.ndindex(image.shape[:2]):
             id = num_pixels
             num_pixels += 1
             colour = image[row, col]
-            self.pixel_art[row, col] = _Pixel(id, colour)
+            self.pixel_grid[row, col] = _Pixel(id, colour)
 
     # Input raster might be a big image where each pixel from the pixel art might take up multiple pixels inthe raster.
     # In these cases, we want to reduce the input raster.
