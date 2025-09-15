@@ -38,7 +38,7 @@ class PixelArtRaster:
         if add_padding:
             self.add_padding_to_pixel_grid()
         
-        self.svg_renderer = SVGRenderer(pixel_art = self.get_pixel_art_image())
+        self.svg_renderer = SVGRenderer()
         self.set_svg_pixel_elements()
     
     def get_pixel_art_image(self):

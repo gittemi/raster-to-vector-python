@@ -18,6 +18,8 @@ class PixelVectorGraph:
 # PUBLIC
 
     def render(self):
+        self.svg_renderer.clear()
+        self._set_dual_graph_svg_elements()
         return HTML(self.svg_renderer.get_html_code_for_svg())
 
     def construct_dual_graph(self, adjacency_graph = None):
@@ -27,7 +29,7 @@ class PixelVectorGraph:
         self._initialize_graph_nodes()
         self._initialize_graph_edges()
 
-        self.svg_renderer.set_dual_graph_elements(self)
+        # self.svg_renderer.set_dual_graph_elements(self)
 
 # PRIVATE
 
@@ -203,6 +205,23 @@ class PixelVectorGraph:
             if edge is not None and edge.id >= 0:
                 cleaned_edges_list.append(edge)
         self.graph_edges_list = cleaned_edges_list
+
+    def _set_dual_graph_svg_elements(self):
+        visited = np.zeros(self.number_of_edges, dtype=bool)
+        for edge in self.graph_edges_list:
+            if not visited[edge.id]:
+                # Visit the edges. If they are in a loop, add the polygon in dual_graph_elements
+                start_edge = edge
+                points = []
+                colour = edge.pixel.colour
+                while edge is not None:
+                    visited[edge.id] = True
+                    y, x = edge.start_node.get_coordinates()
+                    points.append([x,y])
+                    edge = edge.next_edge
+                    if edge is not None and edge.id == start_edge.id:
+                        self.svg_renderer.add_polygon(points, colour)
+                        break
 
 class _PixelVectorGraphNode:
     def __init__(self, id = -1, position = (0,0), offset = (0,0)):

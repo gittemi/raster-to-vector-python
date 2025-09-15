@@ -6,33 +6,22 @@ import numpy as np
 
 class SVGRenderer:
     # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
-    # TODO (P1): Consider renaming pixel_size to scale_factor to unify terminology
-    # TODO (P0): Eliminate the dependency on pixel_art, pixel_size, adjacency_graph, dual_graph
-    def __init__(self, pixel_art = None, pixel_size = 20, adjacency_graph = None, dual_graph = None):
-        self.pixel_size = pixel_size
-        self.pixel_art = pixel_art
-        
+    # TODO (P1): Make scale_factor universally applicable, to circles, squares, polygons
+    def __init__(self, scale_factor = 20):
+        self.scale_factor = scale_factor
         self.svg_elements = []
-
-        if adjacency_graph is not None:
-            self.set_adjacency_graph_elements(adjacency_graph)
-        
-        if dual_graph is not None:
-            self.set_dual_graph_elements(dual_graph)
 
     def __str__(self):
         return self.get_html_code_for_svg()
 
 # PUBLIC
 
+    '''Setters'''
+
     # Remove all SVG elements from this object
     def clear(self):
         self.svg_elements = []
 
-    # Returns the list of all svg objects
-    def get_all_svg_objects(self):
-        return self.svg_elements
-    
     def add_svg_objects(self, svg_objects_list):
         self.svg_elements.extend(svg_objects_list)
 
@@ -51,30 +40,17 @@ class SVGRenderer:
     def add_circle(self, cx, cy, radius, colour):
         new_element = _CircleElement(cx, cy, radius, colour)
         self.svg_elements.append(new_element)
-    
-    # TODO (P0): Implement
-    def add_polygon(self):
-        pass
 
-    # TODO (P0): DEPRECATE and move logic to more applicable class
-    def set_dual_graph_elements(self, dual_graph):
-        visited = np.zeros(dual_graph.number_of_edges, dtype=bool)
-        for edge in dual_graph.graph_edges_list:
-            if not visited[edge.id]:
-                # Visit the edges. If they are in a loop, add the polygon in dual_graph_elements
-                start_edge = edge
-                points = []
-                colour = edge.pixel.colour
-                while edge is not None:
-                    visited[edge.id] = True
-                    y, x = edge.start_node.get_coordinates()
-                    points.append([x,y])
-                    edge = edge.next_edge
-                    if edge is not None and edge.id == start_edge.id:
-                        new_polygon = _PolygonElement(points, self._get_colour_as_tuple(colour))
-                        self.svg_elements.append(new_polygon)
-                        break
-    
+    def add_polygon(self, points = [], colour = (0,0,0,0), scale_factor = 20):
+        new_element = _PolygonElement(points, self._get_colour_as_tuple(colour), scale_factor)
+        self.svg_elements.append(new_element)
+
+    '''Getters'''
+
+    # Returns the list of all svg objects
+    def get_all_svg_objects(self):
+        return self.svg_elements
+
     # TODO (P3): Take padding as a paramter
     # TODO (P1): Remove render_square_elements and render_dual_graph as parameters
     def get_html_code_for_svg(self):
