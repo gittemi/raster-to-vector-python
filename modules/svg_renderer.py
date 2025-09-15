@@ -7,18 +7,12 @@ import numpy as np
 class SVGRenderer:
     # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
     # TODO (P1): Consider renaming pixel_size to scale_factor to unify terminology
+    # TODO (P0): Eliminate the dependency on pixel_art, pixel_size, adjacency_graph, dual_graph
     def __init__(self, pixel_art = None, pixel_size = 20, adjacency_graph = None, dual_graph = None):
         self.pixel_size = pixel_size
         self.pixel_art = pixel_art
         
-        # TODO (P0): Create a singular list `svg_elements` with no distinguishing between type of elements
-        self.square_elements = []
-        self.adjacency_graph_node_svg_elements = []
-        self.adjacency_graph_edge_svg_elements = []
-        self.dual_graph_elements = []
-
-        # if pixel_art is not None:
-        #     self.set_square_elements(pixel_art, pixel_size)
+        self.svg_elements = []
 
         if adjacency_graph is not None:
             self.set_adjacency_graph_elements(adjacency_graph)
@@ -33,15 +27,14 @@ class SVGRenderer:
 
     # Remove all SVG elements from this object
     def clear(self):
-        self.square_elements = []
-        # TODO (P0): Clear all other lists too
+        self.svg_elements = []
 
     # Returns the list of all svg objects
     def get_all_svg_objects(self):
-        return self.square_elements
+        return self.svg_elements
     
     def add_svg_objects(self, svg_objects_list):
-        self.square_elements.extend(svg_objects_list)
+        self.svg_elements.extend(svg_objects_list)
 
     def add_square(self,
                    square_side: int,    # Length of the square size.
@@ -49,16 +42,15 @@ class SVGRenderer:
                    position = (0,0)     # Position of the center of the square. TODO (P1): Confirm this
                    ):
         new_element = _PixelElement(square_side, self._get_colour_as_tuple(colour), position)
-        self.square_elements.append(new_element)
+        self.svg_elements.append(new_element)
 
-    # TODO (P0): Implement
     def add_line(self, x1, y1, x2, y2, colour, width):
         new_element = _LineElement(x1, y1, x2, y2, colour, width)
-        self.adjacency_graph_edge_svg_elements.append(new_element)
+        self.svg_elements.append(new_element)
 
     def add_circle(self, cx, cy, radius, colour):
         new_element = _CircleElement(cx, cy, radius, colour)
-        self.adjacency_graph_node_svg_elements.append(new_element)
+        self.svg_elements.append(new_element)
     
     # TODO (P0): Implement
     def add_polygon(self):
@@ -66,7 +58,6 @@ class SVGRenderer:
 
     # TODO (P0): DEPRECATE and move logic to more applicable class
     def set_dual_graph_elements(self, dual_graph):
-        self.dual_graph_elements = []
         visited = np.zeros(dual_graph.number_of_edges, dtype=bool)
         for edge in dual_graph.graph_edges_list:
             if not visited[edge.id]:
@@ -81,13 +72,13 @@ class SVGRenderer:
                     edge = edge.next_edge
                     if edge is not None and edge.id == start_edge.id:
                         new_polygon = _PolygonElement(points, self._get_colour_as_tuple(colour))
-                        self.dual_graph_elements.append(new_polygon)
+                        self.svg_elements.append(new_polygon)
                         break
     
     # TODO (P3): Take padding as a paramter
     # TODO (P1): Remove render_square_elements and render_dual_graph as parameters
-    def get_html_code_for_svg(self, render_square_elements = True, render_adjacency_graph = True, render_dual_graph = False):
-        svg_code = self.get_svg_code(render_square_elements, render_adjacency_graph, render_dual_graph)
+    def get_html_code_for_svg(self):
+        svg_code = self.get_svg_code()
         svg_code_indented = '\n'.join('\t' + line for line in svg_code.splitlines())
         html_open_code = '<div style="background-color: transparent; padding: 0px;">'
         html_close_code = '</div>'
@@ -96,23 +87,12 @@ class SVGRenderer:
         return html_code
 
     # TODO (P1): Remove render_square_elements and render_dual_graph as parameters
-    def get_svg_code(self, render_square_elements = True, render_adjacency_graph = True, render_dual_graph = False):
+    def get_svg_code(self):
         canvas_width, canvas_height = self._get_canvas_size()
 
         svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" shape-rendering="crispEdges" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
         svg_close_code = '</svg>'
-
-        svg_elements_code = ''
-
-        if render_square_elements:
-            svg_elements_code += '\n'.join('\t' + str(pixel_element) for pixel_element in self.square_elements)
-
-        if render_adjacency_graph:
-            svg_elements_code += '\n'.join('\t' + str(node_element) for node_element in self.adjacency_graph_node_svg_elements)
-            svg_elements_code += '\n'.join('\t' + str(edge_element) for edge_element in self.adjacency_graph_edge_svg_elements)
-
-        if render_dual_graph:
-            svg_elements_code += '\n'.join('\t' + str(poly_element) for poly_element in self.dual_graph_elements)
+        svg_elements_code = '\n'.join('\t' + str(svg_element) for svg_element in self.svg_elements)
 
         svg_code = svg_open_code + '\n' + svg_elements_code + '\n' + svg_close_code
         return svg_code
@@ -134,10 +114,7 @@ class SVGRenderer:
     def _get_canvas_size(self):
         canvas_width = 0
         canvas_height = 0
-        for element in self.square_elements \
-            + self.adjacency_graph_node_svg_elements \
-            + self.adjacency_graph_edge_svg_elements \
-            + self.dual_graph_elements:
+        for element in self.svg_elements:
             canvas_width = max(canvas_width, element.bounds[0])
             canvas_height = max(canvas_height, element.bounds[1])
         return canvas_width, canvas_height
