@@ -2,30 +2,38 @@ import cv2
 import math
 import numpy as np
 import tkinter as tk
+from numpy.typing import NDArray
 from tkinter import filedialog
 from IPython.display import HTML
 
 from svg_renderer import SVGRenderer
+from colour import Colour
 
 class _Pixel:
-    def __init__(self, id = None, colour = None):
-        self.id = id
-        self.colour = colour
+    def __init__(self, id: int = None, colour: Colour = None):
+        self.id: int = id
+        self.colour: Colour = colour
 
 class PixelArtRaster:
-    def __init__(self, input_raster = None, reduce_input_raster = False):
-        self.pixel_count = 0
-        self.input_raster = input_raster
-        self.reduce_input_raster = reduce_input_raster
-        self.pixel_grid = None
-        self.input_raster_file_path = None
-        self.svg_renderer = SVGRenderer()
+    def __init__(self, 
+                 input_raster: NDArray[np.uint64] = None,
+                 reduce_input_raster: bool = False):
+        self.pixel_count: int = 0
+        self.input_raster: NDArray[np.uint64] = input_raster
+        self.reduce_input_raster: bool = reduce_input_raster
+        self.pixel_grid: NDArray[_Pixel] = None
+        self.input_raster_file_path: str = None
+        self.svg_renderer: SVGRenderer = SVGRenderer()
 
 # PUBLIC
 
     # Import an input raster image.
     # If none is specified via parameter, create a window to allow user to select a PNG.
-    def import_input_raster(self, input_raster = None, prompt_user_for_input = True, reduce_input_raster = False, add_padding = True):
+    def import_input_raster(self,
+                            input_raster: NDArray[np.uint64] = None,
+                            prompt_user_for_input: bool = True,
+                            reduce_input_raster: bool = False,
+                            add_padding: bool = True):
         self.input_raster = input_raster
         if input_raster is None:
             if not prompt_user_for_input:
@@ -40,20 +48,19 @@ class PixelArtRaster:
             self.add_padding_to_pixel_grid()
     
     def get_pixel_art_image(self):
-        pixel_art_image = np.zeros((self.pixel_grid.shape[0], self.pixel_grid.shape[1], 4))
+        pixel_art_image: NDArray[np.uint64] = np.zeros((self.pixel_grid.shape[0], self.pixel_grid.shape[1], 4))
         for row, col in np.ndindex(pixel_art_image.shape[:2]):
-            pixel_art_image[row, col] = self.pixel_grid[row, col].colour
+            pixel_art_image[row, col] = self.pixel_grid[row, col].colour.get_colour_as_array()
         
         return pixel_art_image
 
-    # TODO (P0): Move all SVG logic into this method
     def render(self):
         self.svg_renderer.clear()
         self._set_svg_pixel_elements()
         return HTML(self.svg_renderer.get_html_code_for_svg())
 
     # Export the pixel art PNG image. If no path is specified, overwrite the input raster.
-    def export_pixel_art_png(self, export_path = None):
+    def export_pixel_art_png(self, export_path: str = None):
         if export_path is None:
             export_path = self.input_raster_file_path
 
@@ -62,24 +69,24 @@ class PixelArtRaster:
 
 # PRIVATE
 
-    def _create_pixel(self, colour):
+    def _create_pixel(self, colour: Colour) -> _Pixel:
         id = self.pixel_count
         self.pixel_count += 1
         new_pixel = _Pixel(id, colour)
         return new_pixel
 
-    def _create_pixel_grid(self, image):
+    def _create_pixel_grid(self, image: NDArray[np.uint64]):
         if image is None:
             return
         
         self.pixel_grid = np.empty(image.shape[:2], dtype = object)
         for row, col in np.ndindex(image.shape[:2]):
-            colour = image[row, col]
+            colour = Colour(image[row, col])
             self.pixel_grid[row, col] = self._create_pixel(colour)
 
     # Add a 1 transparent pixel padding to the borders of the image
     def add_padding_to_pixel_grid(self):
-        old_pixel_grid = self.pixel_grid
+        old_pixel_grid: NDArray[_Pixel] = self.pixel_grid
         self.pixel_grid = np.empty((old_pixel_grid.shape[0]+2, old_pixel_grid.shape[1]+2), dtype=object)
 
         # Copy referernces to existing pixels
@@ -87,7 +94,7 @@ class PixelArtRaster:
             self.pixel_grid[row+1, col+1] = old_pixel_grid[row, col]
 
         # Add transparent pixels to borders
-        transparent_colour = old_pixel_grid[0,0].colour
+        transparent_colour: Colour = old_pixel_grid[0,0].colour
         for row in range(self.pixel_grid.shape[0]):
             self.pixel_grid[row][0] = self._create_pixel(transparent_colour)
             self.pixel_grid[row][self.pixel_grid.shape[1]-1] = self._create_pixel(transparent_colour)
@@ -97,7 +104,7 @@ class PixelArtRaster:
 
     # Input raster might be a big image where each pixel from the pixel art might take up multiple pixels inthe raster.
     # In these cases, we want to reduce the input raster.
-    def _reduce_input_raster(self, verbose = False):
+    def _reduce_input_raster(self, verbose: bool = False) -> NDArray[np.uint64]:
         if self.input_raster is None:
             return None
 
@@ -127,7 +134,7 @@ class PixelArtRaster:
 
         return pixel_art
 
-    def _select_input_raster_from_window(self, verbose = True):
+    def _select_input_raster_from_window(self, verbose: bool = True) -> NDArray[np.uint64]:
         root = tk.Tk()
         root.withdraw()
         root.attributes("-topmost", True) 
@@ -144,10 +151,10 @@ class PixelArtRaster:
         input_raster = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
         return input_raster
     
-    def _set_svg_pixel_elements(self, pixel_size = 20):
+    def _set_svg_pixel_elements(self, pixel_size: int = 20):
         # TODO (P4): Validate that pixel_art has the correct shape and data type. Throw exception if not 
         for row, col in np.ndindex(self.pixel_grid.shape[:2]):
-            pixel_colour = self.pixel_grid[row, col].colour
+            pixel_colour: Colour = self.pixel_grid[row, col].colour
             pixel_position = (col * pixel_size, row * pixel_size)
 
             self.svg_renderer.add_square(square_side = pixel_size, colour = pixel_colour, position = pixel_position)

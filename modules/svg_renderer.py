@@ -1,5 +1,5 @@
 import numpy as np
-# from pixel_vector_graph import PixelVectorGraph
+from colour import Colour
 
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
@@ -27,10 +27,10 @@ class SVGRenderer:
 
     def add_square(self,
                    square_side: int,    # Length of the square size.
-                   colour = (0,0,0,0),  # Colour in RGBA format. 
+                   colour: Colour = Colour([0,0,0,0]),  # Colour in RGBA format. 
                    position = (0,0)     # Position of the center of the square. TODO (P1): Confirm this
                    ):
-        new_element = _PixelElement(square_side, self._get_colour_as_tuple(colour), position)
+        new_element = _PixelElement(square_side, colour, position)
         self.svg_elements.append(new_element)
 
     def add_line(self, x1, y1, x2, y2, colour, width):
@@ -41,8 +41,11 @@ class SVGRenderer:
         new_element = _CircleElement(cx, cy, radius, colour)
         self.svg_elements.append(new_element)
 
-    def add_polygon(self, points = [], colour = (0,0,0,0), scale_factor = 20):
-        new_element = _PolygonElement(points, self._get_colour_as_tuple(colour), scale_factor)
+    def add_polygon(self,
+                    points = [],
+                    colour: Colour = Colour([0,0,0,0]),
+                    scale_factor = 20):
+        new_element = _PolygonElement(points, colour, scale_factor)
         self.svg_elements.append(new_element)
 
     '''Getters'''
@@ -80,11 +83,6 @@ class SVGRenderer:
 
 # PRIVATE
 
-    # TODO (P1): Create a colour class and deprecate this method
-    # Given colour in a numpy array format, return it in a tuple format
-    def _get_colour_as_tuple(self, colour_as_array):
-        return tuple(int(x) for x in np.array(colour_as_array))
-    
     # Get the size of the canvas that fits all the elements exactly
     # Returns width and height of the canvas in that order
     def _get_canvas_size(self):
