@@ -295,8 +295,6 @@ class PixelAdjacencyGraph:
             cx = (col+0.5) * pixel_size
             cy = (row+0.5) * pixel_size
             self.svg_renderer.add_circle(cx, cy, node_radius, rendered_colour)
-            # new_node = _CircleElement(cx, cy, node_radius, rendered_colour)
-            # self.adjacency_graph_node_svg_elements.append(new_node)
         
         # Add graph edges
         for row, col in np.ndindex(adjacency_matrix.shape[:2]):
@@ -316,7 +314,4 @@ class PixelAdjacencyGraph:
                             and not is_node_planar[next_row, col]:
                         rendered_colour = edge_colour_failure
                     self.svg_renderer.add_line(x1, y1, x2, y2, rendered_colour, edge_width)
-                    # new_edge = _LineElement(x1, y1, x2, y2, rendered_colour, edge_width)
-                    # self.adjacency_graph_edge_svg_elements.append(new_edge)
-
     # end

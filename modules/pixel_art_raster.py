@@ -19,6 +19,7 @@ class PixelArtRaster:
         self.reduce_input_raster = reduce_input_raster
         self.pixel_grid = None
         self.input_raster_file_path = None
+        self.svg_renderer = SVGRenderer()
 
 # PUBLIC
 
@@ -37,9 +38,6 @@ class PixelArtRaster:
 
         if add_padding:
             self.add_padding_to_pixel_grid()
-        
-        self.svg_renderer = SVGRenderer()
-        self.set_svg_pixel_elements()
     
     def get_pixel_art_image(self):
         pixel_art_image = np.zeros((self.pixel_grid.shape[0], self.pixel_grid.shape[1], 4))
@@ -50,6 +48,8 @@ class PixelArtRaster:
 
     # TODO (P0): Move all SVG logic into this method
     def render(self):
+        self.svg_renderer.clear()
+        self._set_svg_pixel_elements()
         return HTML(self.svg_renderer.get_html_code_for_svg())
 
     # Export the pixel art PNG image. If no path is specified, overwrite the input raster.
@@ -59,15 +59,6 @@ class PixelArtRaster:
 
         saved_art = cv2.cvtColor(self.pixel_grid, cv2.COLOR_BGRA2RGBA)
         cv2.imwrite(export_path, saved_art)
-
-    def set_svg_pixel_elements(self, pixel_size = 20):
-        # TODO (P4): Validate that pixel_art has the correct shape and data type. Throw exception if not 
-        for row, col in np.ndindex(self.pixel_grid.shape[:2]):
-            pixel_colour = self.pixel_grid[row, col].colour
-            pixel_position = (col * pixel_size, row * pixel_size)
-
-            # pixel_element = _PixelElement(pixel_size, pixel_colour, pixel_position)
-            self.svg_renderer.add_square(square_side = pixel_size, colour = pixel_colour, position = pixel_position)
 
 # PRIVATE
 
@@ -152,3 +143,11 @@ class PixelArtRaster:
         img = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
         input_raster = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
         return input_raster
+    
+    def _set_svg_pixel_elements(self, pixel_size = 20):
+        # TODO (P4): Validate that pixel_art has the correct shape and data type. Throw exception if not 
+        for row, col in np.ndindex(self.pixel_grid.shape[:2]):
+            pixel_colour = self.pixel_grid[row, col].colour
+            pixel_position = (col * pixel_size, row * pixel_size)
+
+            self.svg_renderer.add_square(square_side = pixel_size, colour = pixel_colour, position = pixel_position)

@@ -1,5 +1,5 @@
 import numpy as np
-from IPython.display import SVG, display, HTML
+from IPython.display import HTML
 
 from pixel_adjacency_graph import PixelAdjacencyGraph
 from svg_renderer import SVGRenderer
@@ -28,8 +28,6 @@ class PixelVectorGraph:
 
         self._initialize_graph_nodes()
         self._initialize_graph_edges()
-
-        # self.svg_renderer.set_dual_graph_elements(self)
 
 # PRIVATE
 
