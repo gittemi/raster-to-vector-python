@@ -18,7 +18,7 @@ class PixelVectorGraph:
 # PUBLIC
 
     def render(self):
-        return HTML(self.svg_renderer.get_html_code_for_svg(render_pixel_elements=False, render_adjacency_graph=False,render_dual_graph=True))
+        return HTML(self.svg_renderer.get_html_code_for_svg(render_square_elements=False, render_adjacency_graph=False,render_dual_graph=True))
 
     def construct_dual_graph(self, adjacency_graph = None):
         if adjacency_graph is not None:

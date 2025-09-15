@@ -3,7 +3,7 @@ import math
 import numpy as np
 import tkinter as tk
 from tkinter import filedialog
-from IPython.display import SVG, display, HTML
+from IPython.display import HTML
 
 from svg_renderer import SVGRenderer
 
@@ -39,6 +39,7 @@ class PixelArtRaster:
             self.add_padding_to_pixel_grid()
         
         self.svg_renderer = SVGRenderer(pixel_art = self.get_pixel_art_image())
+        self.set_svg_pixel_elements()
     
     def get_pixel_art_image(self):
         pixel_art_image = np.zeros((self.pixel_grid.shape[0], self.pixel_grid.shape[1], 4))
@@ -47,6 +48,7 @@ class PixelArtRaster:
         
         return pixel_art_image
 
+    # TODO (P0): Move all SVG logic into this method
     def render(self):
         return HTML(self.svg_renderer.get_html_code_for_svg())
 
@@ -57,6 +59,15 @@ class PixelArtRaster:
 
         saved_art = cv2.cvtColor(self.pixel_grid, cv2.COLOR_BGRA2RGBA)
         cv2.imwrite(export_path, saved_art)
+
+    def set_svg_pixel_elements(self, pixel_size = 20):
+        # TODO (P4): Validate that pixel_art has the correct shape and data type. Throw exception if not 
+        for row, col in np.ndindex(self.pixel_grid.shape[:2]):
+            pixel_colour = self.pixel_grid[row, col].colour
+            pixel_position = (col * pixel_size, row * pixel_size)
+
+            # pixel_element = _PixelElement(pixel_size, pixel_colour, pixel_position)
+            self.svg_renderer.add_square(square_side = pixel_size, colour = pixel_colour, position = pixel_position)
 
 # PRIVATE
 
@@ -128,6 +139,7 @@ class PixelArtRaster:
     def _select_input_raster_from_window(self, verbose = True):
         root = tk.Tk()
         root.withdraw()
+        root.attributes("-topmost", True) 
         file_path = filedialog.askopenfilename(
             title="Select a PNG image",
             filetypes=[("PNG files", "*.png")]

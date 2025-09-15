@@ -1,12 +1,16 @@
 import numpy as np
+from IPython.display import HTML
+
+from svg_renderer import SVGRenderer
 
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 
 class PixelAdjacencyGraph:
-    def __init__(self, pixel_art, make_graph_planar = True):
-        self.pixel_art = pixel_art
+    def __init__(self, pixel_art_raster, make_graph_planar = True):
+        self.pixel_art_raster = pixel_art_raster
         self._init_adjacency_graph()
+        self.svg_renderer = SVGRenderer()
 
         if make_graph_planar:
             self._make_graph_planar()
@@ -53,18 +57,29 @@ class PixelAdjacencyGraph:
         next_col = col + col_inc[edge_index]
 
         return next_row, next_col
+    
+    def render(self, render_pixel_art = True, render_adjacency_graph = True):
+        self.svg_renderer.clear()
 
+        if render_pixel_art:
+            pixel_art_svg_elements = self.pixel_art_raster.svg_renderer.get_all_svg_objects()
+            self.svg_renderer.add_svg_objects(pixel_art_svg_elements)
+
+        self._set_adjacency_graph_svg_elements()
+        return HTML(self.svg_renderer.get_html_code_for_svg())
+    
 # PRIVATE
     # create adjacency matrix for given pixel art
     def  _init_adjacency_graph(self):
-        self.adjacency_matrix = np.ones((self.pixel_art.shape[0], self.pixel_art.shape[1], 8), dtype=bool)
+        pixel_art_image = self.pixel_art_raster.get_pixel_art_image()
+        self.adjacency_matrix = np.ones((pixel_art_image.shape[0], pixel_art_image.shape[1], 8), dtype=bool)
 
         # Initially, mark all edges as true, except the ones at the borders of the image.
-        for row in range(self.pixel_art.shape[0]):
+        for row in range(pixel_art_image.shape[0]):
             self.adjacency_matrix[row, 0, 0] = self.adjacency_matrix[row, 0, 3] = self.adjacency_matrix[row, 0, 5] = False
             self.adjacency_matrix[row, -1, 2] = self.adjacency_matrix[row, -1, 4] = self.adjacency_matrix[row, -1, 7] = False
 
-        for col in range(self.pixel_art.shape[1]):
+        for col in range(pixel_art_image.shape[1]):
             self.adjacency_matrix[0, col, 0] = self.adjacency_matrix[0, col, 1] = self.adjacency_matrix[0, col, 2] = False
             self.adjacency_matrix[-1, col, 5] = self.adjacency_matrix[-1, col, 6] = self.adjacency_matrix[-1, col, 7] = False
     
@@ -79,11 +94,12 @@ class PixelAdjacencyGraph:
 
     # Any nodes that do not have similar colours should not have an edge between them
     def _prune_edges_from_dissimilar_colours(self):
+        pixel_art_image = self.pixel_art_raster.get_pixel_art_image()
         for row, col in np.ndindex(self.adjacency_matrix.shape[:2]):
             for i in self._get_edge_indices(row, col):
                 next_row, next_col = self.get_neighbouring_node(row, col, i)
                 # TODO (P4): We may want to support colours that are similar but not exactly the same later.
-                if(self.adjacency_matrix[row, col, i] and (self.pixel_art[row, col] != self.pixel_art[next_row, next_col]).any()):
+                if(self.adjacency_matrix[row, col, i] and (pixel_art_image[row, col] != pixel_art_image[next_row, next_col]).any()):
                     self.set_edge(row, col, i, False)
 
     # Any complete 2x2 subgraphs do not need the X edges between them
@@ -135,13 +151,14 @@ class PixelAdjacencyGraph:
     # Removes the edge with the sparser colour.
     # Returns True if the conflict is resolved, False otherwise.
     def _resolve_edge_conflict_by_preserving_more_prominent_edge_colour(self, row, col, threshold_ratio = 4):
+        pixel_art_image = self.pixel_art_raster.get_pixel_art_image()
         window_top_left = [max(row-2, 0), max(col-2, 0)]
         window_bottom_right = [min(window_top_left[0] + 6, self.adjacency_matrix.shape[0]), min(window_top_left[1] + 6, self.adjacency_matrix.shape[1])]
 
-        pixel_art_window = self.pixel_art[window_top_left[0]:window_bottom_right[0], window_top_left[1]:window_bottom_right[1]]
+        pixel_art_window = pixel_art_image[window_top_left[0]:window_bottom_right[0], window_top_left[1]:window_bottom_right[1]]
 
-        colour_dexter = self.pixel_art[row, col]
-        colour_sinister = self.pixel_art[row, col+1]
+        colour_dexter = pixel_art_image[row, col]
+        colour_sinister = pixel_art_image[row, col+1]
 
         pixel_count_dexter = self._count_pixels_with_certain_colour(pixel_art_window, colour_dexter)
         pixel_count_sinister = self._count_pixels_with_certain_colour(pixel_art_window, colour_sinister)
@@ -233,6 +250,7 @@ class PixelAdjacencyGraph:
                 count += 1
         return count
 
+    # TODO (P1): Rename to _num_connected_components
     def num_connected_components(self, matrix = None):
         if matrix is None:
             matrix = self.adjacency_matrix
@@ -253,5 +271,52 @@ class PixelAdjacencyGraph:
                         visited[next_node] = True
                         to_visit.append(next_node)
         return count
+    
+    def _set_adjacency_graph_svg_elements(self,
+                                          pixel_size = 20,
+                                          mark_erroneous_nodes = True,
+                                          node_radius_ratio = 0.2,
+                                          node_colour = (0, 255, 0, 0.33),
+                                          node_colour_failure = (255, 0, 0, 1.0),
+                                          edge_colour = (0, 255, 0, 0.5),
+                                          edge_colour_failure = (255, 0, 0, 1.0),
+                                          edge_width = 2):
+        adjacency_matrix = self.get_adjacency_matrix()
+        # Add graph nodes
+        if mark_erroneous_nodes:
+            is_node_planar = self.get_non_planar_nodes()
+
+        node_radius = pixel_size * node_radius_ratio
+
+        for row, col in np.ndindex(adjacency_matrix.shape[:2]):
+            rendered_colour = node_colour
+            if mark_erroneous_nodes and not is_node_planar[row, col]:
+                rendered_colour = node_colour_failure
+            cx = (col+0.5) * pixel_size
+            cy = (row+0.5) * pixel_size
+            self.svg_renderer.add_circle(cx, cy, node_radius, rendered_colour)
+            # new_node = _CircleElement(cx, cy, node_radius, rendered_colour)
+            # self.adjacency_graph_node_svg_elements.append(new_node)
+        
+        # Add graph edges
+        for row, col in np.ndindex(adjacency_matrix.shape[:2]):
+            for i in range(4):
+                if(adjacency_matrix[row, col, i]):
+                    next_row, next_col = self.get_neighbouring_node(row, col, i)
+                    x1 = (col+0.5) * pixel_size
+                    y1 = (row+0.5) * pixel_size
+                    x2 = (next_col+0.5) * pixel_size
+                    y2 = (next_row+0.5) * pixel_size
+                    rendered_colour = edge_colour
+                    if mark_erroneous_nodes\
+                            and i in [0, 2]\
+                            and not is_node_planar[row, col]\
+                            and not is_node_planar[next_row, next_col]\
+                            and not is_node_planar[row, next_col]\
+                            and not is_node_planar[next_row, col]:
+                        rendered_colour = edge_colour_failure
+                    self.svg_renderer.add_line(x1, y1, x2, y2, rendered_colour, edge_width)
+                    # new_edge = _LineElement(x1, y1, x2, y2, rendered_colour, edge_width)
+                    # self.adjacency_graph_edge_svg_elements.append(new_edge)
 
     # end
