@@ -30,6 +30,27 @@ class SVGRenderer:
 
 # PUBLIC
 
+    # TODO (P0): Implement
+    def render(self):
+        pass
+
+    # TODO (P0): Implement
+    def add_square(self):
+        pass
+
+    # TODO (P0): Implement
+    def add_line(self):
+        pass
+
+    # TODO (P0): Implement
+    def add_circle(self):
+        pass
+    
+    # TODO (P0): Implement
+    def add_polygon(self):
+        pass
+
+    # TODO (P0): DEPRECATE and move logic to more applicable class
     # For a given pixel art image given as a numpy array, save it 
     def set_pixel_elements(self, pixel_art, pixel_size = 20):
         # TODO (P4): Validate that pixel_art has the correct shape and data type. Throw exception if not 
@@ -40,6 +61,7 @@ class SVGRenderer:
             pixel_element = _PixelElement(pixel_size, pixel_colour, pixel_position)
             self.pixel_elements.append(pixel_element)
 
+    # TODO (P0): DEPRECATE and move logic to more applicable class
     # Given an adjacency graph, set the node adn edge SVG elements that can be rendered
     def set_adjacency_graph_elements(self,
                                      adjacency_graph,
@@ -86,6 +108,7 @@ class SVGRenderer:
                     new_edge = _LineElement(x1, y1, x2, y2, rendered_colour, edge_width)
                     self.adjacency_graph_edge_svg_elements.append(new_edge)
 
+    # TODO (P0): DEPRECATE and move logic to more applicable class
     def set_dual_graph_elements(self, dual_graph):
         self.dual_graph_elements = []
         visited = np.zeros(dual_graph.number_of_edges, dtype=bool)
@@ -120,7 +143,6 @@ class SVGRenderer:
     def get_svg_code(self, render_pixel_elements = True, render_adjacency_graph = True, render_dual_graph = False):
         canvas_width, canvas_height = self._get_canvas_size()
 
-        # TODO (P0) : Change back to canvas_width and canvas_height
         svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" shape-rendering="crispEdges" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
         svg_close_code = '</svg>'
 

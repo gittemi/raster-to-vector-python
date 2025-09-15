@@ -17,11 +17,9 @@ class PixelVectorGraph:
 
 # PUBLIC
 
-    # TODO (P0): Implement this method
     def render(self):
         return HTML(self.svg_renderer.get_html_code_for_svg(render_pixel_elements=False, render_adjacency_graph=False,render_dual_graph=True))
 
-    # TODO (P0): Implement this method
     def construct_dual_graph(self, adjacency_graph = None):
         if adjacency_graph is not None:
             self.adjacency_graph = adjacency_graph
@@ -141,11 +139,15 @@ class PixelVectorGraph:
                 e60.set_opposite_edge(e06)
                 e70.set_opposite_edge(e07)
 
-        # For rach intialised edge, set its next_edge. Note that every edge will have a next_edge
+        # Many edges do not separate distinct regions. Remove them
+        # self._delete_edges_without_colour_boundary()
+
+        # For each intialised edge, set its next_edge. Note that every edge will have a next_edge
         for edge in self.graph_edges_list:
             next_node = edge.end_node
             for next_edge in next_node.edge_list:
                 if edge.pixel.id == next_edge.pixel.id:
+                # if next_edge.id != edge.opposite_edge.id and (edge.pixel.colour == next_edge.pixel.colour).all():
                     edge.next_edge = next_edge
                     break
 
@@ -184,7 +186,23 @@ class PixelVectorGraph:
         node_x = col + offsets[node_index][1]
 
         return (node_y, node_x)
+    
+    # Any edges where the opposite edge has the same colour are deleted
+    # as the edge carries no information.
+    def _delete_edges_without_colour_boundary(self):
+        for edge in self.graph_edges_list:
+            if (edge.pixel.colour == edge.opposite_edge.pixel.colour).all():
+                edge.id = -1
+                edge.opposite_edge.id = -1
+        self._delete_unallocated_edges()
 
+    # Any elements in the list that are None or have negative ID are deleted
+    def _delete_unallocated_edges(self):
+        cleaned_edges_list = []
+        for edge in self.graph_edges_list:
+            if edge is not None and edge.id >= 0:
+                cleaned_edges_list.append(edge)
+        self.graph_edges_list = cleaned_edges_list
 
 class _PixelVectorGraphNode:
     def __init__(self, id = -1, position = (0,0), offset = (0,0)):
