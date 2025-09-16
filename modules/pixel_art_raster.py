@@ -50,7 +50,7 @@ class PixelArtRaster:
     def get_pixel_art_image(self):
         pixel_art_image: NDArray[np.uint64] = np.zeros((self.pixel_grid.shape[0], self.pixel_grid.shape[1], 4))
         for row, col in np.ndindex(pixel_art_image.shape[:2]):
-            pixel_art_image[row, col] = self.pixel_grid[row, col].colour.get_colour_as_array()
+            pixel_art_image[row, col] = np.array(self.pixel_grid[row, col].colour)
         
         return pixel_art_image
 

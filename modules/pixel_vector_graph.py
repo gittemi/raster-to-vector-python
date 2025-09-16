@@ -147,7 +147,7 @@ class PixelVectorGraph:
             next_node = edge.end_node
             for next_edge in next_node.edge_list:
                 if edge.pixel.id == next_edge.pixel.id:
-                # if next_edge.id != edge.opposite_edge.id and (edge.pixel.colour == next_edge.pixel.colour).all():
+                # if next_edge.id != edge.opposite_edge.id and (np.array(edge.pixel.colour) == np.array(next_edge.pixel.colour)).all():
                     edge.next_edge = next_edge
                     break
 
@@ -191,7 +191,7 @@ class PixelVectorGraph:
     # as the edge carries no information.
     def _delete_edges_without_colour_boundary(self):
         for edge in self.graph_edges_list:
-            if (edge.pixel.colour == edge.opposite_edge.pixel.colour).all():
+            if (np.array(edge.pixel.colour) == np.array(edge.opposite_edge.pixel.colour)).all():
                 edge.id = -1
                 edge.opposite_edge.id = -1
         self._delete_unallocated_edges()
