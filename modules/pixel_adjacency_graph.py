@@ -3,6 +3,7 @@ from IPython.display import HTML
 
 from svg_renderer import SVGRenderer
 
+# TODO (P1): Use Google-style Class Docstring to comment all classes
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 

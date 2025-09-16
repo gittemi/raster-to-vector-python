@@ -1,8 +1,10 @@
 import numpy as np
 from colour import Colour
+from vector_2d import Vector2D
 
 DEFAULT_SCALE_FACTOR: int = 20
 
+# TODO (P1): Use Google-style Class Docstring to comment all classes
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 
@@ -30,9 +32,9 @@ class SVGRenderer:
     def add_square(self,
                    square_side: int = 1,    # Length of the square size. Unit square by default
                    colour: Colour = Colour([0,0,0,0]),  # Colour in RGBA format. 
-                   position = (0,0)     # Position of the center of the square. TODO (P1): Confirm this
+                   position = (0,0)     # Position of the center of the square. TODO (P1): Replace with Vector2D class
                    ):
-        new_element = _SquareElement(colour = colour, position = position, side_length = square_side)
+        new_element = _SquareElement(colour = colour, position = Vector2D(position[0], position[1]), side_length = square_side)
         self.svg_elements.append(new_element)
 
     def add_line(self, x1, y1, x2, y2, colour, width):
@@ -109,21 +111,22 @@ class _ElementBounds:
 class _SquareElement(_ElementBounds):
     def __init__(self,
                  colour: Colour = Colour([0,0,0,0]),        # Colour of the pixel
-                 position = (0,0),                          # Position of the pixel in x,y coordinates. TODO (P1): Create a class to store 2D coordinates
+                 position: Vector2D = Vector2D(0,0),        # Position of the pixel in x,y coordinates.
                  side_length: int = 1,                      # Length of the side of the square
                  scale_factor: int = DEFAULT_SCALE_FACTOR   # Factor by which the whole element will be scaled while rendering
                  ):
         super().__init__([[(position[0] + side_length)*scale_factor, (position[1] + side_length)*scale_factor]])
         self.side_length: int = side_length
         self.colour: Colour = colour
-        self.position = position
+        self.position: Vector2D = position
         self.scale_factor: int = scale_factor
     
     def __str__(self):
         width = self.side_length * self.scale_factor
         height = self.side_length * self.scale_factor
         fill = str(self.colour)
-        transform = f'({self.position[0] * self.scale_factor}, {self.position[1] * self.scale_factor})'
+        # transform = f'({self.position[0] * self.scale_factor}, {self.position[1] * self.scale_factor})'
+        transform = str(self.position * self.scale_factor)
         return f'<rect '+ \
             f'width="{width}" '+ \
             f'height="{height}" '+ \

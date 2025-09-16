@@ -4,6 +4,8 @@ from IPython.display import HTML
 from pixel_adjacency_graph import PixelAdjacencyGraph
 from svg_renderer import SVGRenderer
 
+# TODO (P1): Use Google-style Class Docstring to comment all classes
+
 class PixelVectorGraph:
     def __init__(self, pixel_art = None, adjacency_graph = None):
         self.pixel_art = pixel_art

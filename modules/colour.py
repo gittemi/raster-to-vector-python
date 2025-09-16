@@ -1,6 +1,8 @@
 import numpy as np
 from numpy.typing import NDArray
 
+# TODO (P1): Use Google-style Class Docstring to comment all classes
+
 class Colour:
     # colour_list is any object with 4 elements (can be a list, list, array, tuple)
     def __init__(self, colour_list = [0,0,0,0]):

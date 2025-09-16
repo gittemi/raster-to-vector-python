@@ -9,6 +9,8 @@ from IPython.display import HTML
 from svg_renderer import SVGRenderer
 from colour import Colour
 
+# TODO (P1): Use Google-style Class Docstring to comment all classes
+
 class _Pixel:
     def __init__(self, id: int = None, colour: Colour = None):
         self.id: int = id
