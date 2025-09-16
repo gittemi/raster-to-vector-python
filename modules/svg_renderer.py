@@ -107,14 +107,32 @@ class _ElementBounds:
                 max(self.bounds[1], point[1])
             ]
 
-# Internal class to store pixel data for pixel art, to be used when rendering the SVG.
 class _SquareElement(_ElementBounds):
-    def __init__(self,
-                 colour: Colour = Colour([0,0,0,0]),        # Colour of the pixel
-                 position: Vector2D = Vector2D(0,0),        # Position of the pixel in x,y coordinates.
-                 side_length: int = 1,                      # Length of the side of the square
-                 scale_factor: int = DEFAULT_SCALE_FACTOR   # Factor by which the whole element will be scaled while rendering
-                 ):
+    """
+    Internal class to be used by SVGRenderer. Stores data for square SVG elements.
+
+    Attributes:
+        side_length (int): Length of the side of the square.
+        colour (Colour): Colour of the square in RGBA format. Fills the inside of the square.
+        position (Vector2D): Position of the top-left corner of the square in (x,y) coordinates.
+        scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+    """
+    def __init__(
+        self,
+        side_length: int = 1,
+        colour: Colour = Colour([0,0,0,0]),
+        position: Vector2D = Vector2D(0,0),
+        scale_factor: int = DEFAULT_SCALE_FACTOR
+    ):
+        """
+        Initialise a _SquareElement object.
+
+        args:
+            side_length (int): Length of the side of the square. Defaults to unit  length 1
+            colour (Colour): Colour of the square in RGBA format. Fills the inside of the square. Defaults to transparent (0,0,0,0)
+            position (Vector2D): Position of the top-left corner of the square in (x,y) coordinates. Defaults to origin (0,0)
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
+        """
         super().__init__([[(position[0] + side_length)*scale_factor, (position[1] + side_length)*scale_factor]])
         self.side_length: int = side_length
         self.colour: Colour = colour
@@ -122,10 +140,15 @@ class _SquareElement(_ElementBounds):
         self.scale_factor: int = scale_factor
     
     def __str__(self):
+        """
+        Returns an SVG object string with proper formatting.
+
+        Returns:
+            str: A string in the format <rect width="__" height="__" fill="rgba(__)" transform="translate(__)" />
+        """
         width = self.side_length * self.scale_factor
         height = self.side_length * self.scale_factor
         fill = str(self.colour)
-        # transform = f'({self.position[0] * self.scale_factor}, {self.position[1] * self.scale_factor})'
         transform = str(self.position * self.scale_factor)
         return f'<rect '+ \
             f'width="{width}" '+ \
