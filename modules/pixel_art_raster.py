@@ -155,6 +155,6 @@ class PixelArtRaster:
         # TODO (P4): Validate that pixel_art has the correct shape and data type. Throw exception if not 
         for row, col in np.ndindex(self.pixel_grid.shape[:2]):
             pixel_colour: Colour = self.pixel_grid[row, col].colour
-            pixel_position = (col * pixel_size, row * pixel_size)
+            pixel_position = (col, row)
 
-            self.svg_renderer.add_square(square_side = pixel_size, colour = pixel_colour, position = pixel_position)
+            self.svg_renderer.add_square(colour = pixel_colour, position = pixel_position)

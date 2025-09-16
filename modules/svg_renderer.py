@@ -1,13 +1,15 @@
 import numpy as np
 from colour import Colour
 
+DEFAULT_SCALE_FACTOR: int = 20
+
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 
 class SVGRenderer:
     # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
     # TODO (P1): Make scale_factor universally applicable, to circles, squares, polygons
-    def __init__(self, scale_factor = 20):
+    def __init__(self, scale_factor = DEFAULT_SCALE_FACTOR):
         self.scale_factor = scale_factor
         self.svg_elements = []
 
@@ -26,11 +28,11 @@ class SVGRenderer:
         self.svg_elements.extend(svg_objects_list)
 
     def add_square(self,
-                   square_side: int,    # Length of the square size.
+                   square_side: int = 1,    # Length of the square size. Unit square by default
                    colour: Colour = Colour([0,0,0,0]),  # Colour in RGBA format. 
                    position = (0,0)     # Position of the center of the square. TODO (P1): Confirm this
                    ):
-        new_element = _PixelElement(square_side, colour, position)
+        new_element = _SquareElement(colour = colour, position = position, side_length = square_side)
         self.svg_elements.append(new_element)
 
     def add_line(self, x1, y1, x2, y2, colour, width):
@@ -104,19 +106,29 @@ class _ElementBounds:
             ]
 
 # Internal class to store pixel data for pixel art, to be used when rendering the SVG.
-class _PixelElement(_ElementBounds):
-    def __init__(self, pixel_size = 20, colour = (0,0,0,0), position = (0,0)):
-        super().__init__([[position[0] + pixel_size, position[1] + pixel_size]])
-        self.pixel_size = pixel_size
-        self.colour = colour
+class _SquareElement(_ElementBounds):
+    def __init__(self,
+                 colour: Colour = Colour([0,0,0,0]),        # Colour of the pixel
+                 position = (0,0),                          # Position of the pixel in x,y coordinates. TODO (P1): Create a class to store 2D coordinates
+                 side_length: int = 1,                      # Length of the side of the square
+                 scale_factor: int = DEFAULT_SCALE_FACTOR   # Factor by which the whole element will be scaled while rendering
+                 ):
+        super().__init__([[(position[0] + side_length)*scale_factor, (position[1] + side_length)*scale_factor]])
+        self.side_length: int = side_length
+        self.colour: Colour = colour
         self.position = position
+        self.scale_factor: int = scale_factor
     
     def __str__(self):
+        width = self.side_length * self.scale_factor
+        height = self.side_length * self.scale_factor
+        fill = str(self.colour)
+        transform = f'({self.position[0] * self.scale_factor}, {self.position[1] * self.scale_factor})'
         return f'<rect '+ \
-            f'width="{self.pixel_size}" '+ \
-            f'height="{self.pixel_size}" '+ \
-            f'fill="rgba{self.colour}" '+ \
-            f'transform="translate{self.position}"/>'
+            f'width="{width}" '+ \
+            f'height="{height}" '+ \
+            f'fill="rgba{fill}" '+ \
+            f'transform="translate{transform}"/>'
 
 # Internal class to store circle SVG data, to be used when rendering the SVG for adjacency graph.
 class _CircleElement(_ElementBounds):
