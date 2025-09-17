@@ -38,11 +38,11 @@ class SVGRenderer:
         self.svg_elements.append(new_element)
 
     def add_line(self, x1, y1, x2, y2, colour, width):
-        new_element = _LineElement(x1, y1, x2, y2, colour, width)
+        new_element = _LineElement(Vector2D(x1, y1), Vector2D(x2, y2), colour, width)
         self.svg_elements.append(new_element)
 
     def add_circle(self, cx, cy, radius, colour):
-        new_element = _CircleElement(cx, cy, radius, colour)
+        new_element = _CircleElement(Vector2D(cx, cy), radius, colour)
         self.svg_elements.append(new_element)
 
     def add_polygon(self,
@@ -98,6 +98,7 @@ class SVGRenderer:
         return canvas_width, canvas_height
 
 # All SVG element classes should inherit this. Used to determine appropriate canvas size 
+# TODO (P2): Incorporate scale_factor into this class and rename to something more applicable
 class _ElementBounds:
     def __init__(self, points=[]):
         self.bounds = [0,0]
@@ -128,7 +129,7 @@ class _SquareElement(_ElementBounds):
         Initialise a _SquareElement object.
 
         args:
-            side_length (int): Length of the side of the square. Defaults to unit  length 1
+            side_length (int): Length of the side of the square. Defaults to unit length 1
             colour (Colour): Colour of the square in RGBA format. Fills the inside of the square. Defaults to transparent (0,0,0,0)
             position (Vector2D): Position of the top-left corner of the square in (x,y) coordinates. Defaults to origin (0,0)
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
@@ -156,31 +157,96 @@ class _SquareElement(_ElementBounds):
             f'fill="rgba{fill}" '+ \
             f'transform="translate{transform}"/>'
 
-# Internal class to store circle SVG data, to be used when rendering the SVG for adjacency graph.
 class _CircleElement(_ElementBounds):
-    def __init__(self, cx, cy, radius, colour):
-        super().__init__([[cx+radius, cy+radius]])
-        self.cx = cx
-        self.cy = cy
-        self.radius = radius
-        self.colour = colour
+    """
+    Internal class to be used by SVGRenderer. Stores data for circle SVG elements.
+
+    Attributes:
+        centre (Vector2D): Position of the centre of the circle in (x,y) coordinates.
+        radius (int): Length of the radius of the circle.
+        colour (Colour): Colour of the square in RGBA format. Fills the inside of the square.
+        scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+    """
+    def __init__(
+            self,
+            centre: Vector2D,
+            radius: int,
+            colour: Colour,
+            scale_factor: int = DEFAULT_SCALE_FACTOR
+        ):
+        """
+        Initialise a _CircleElement object.
+
+        args:
+            centre (Vector2D): Position of the centre of the circle in (x,y) coordinates.
+            radius (int): Length of the radius of the circle.
+            colour (Colour): Colour of the square in RGBA format. Fills the inside of the circle.
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
+        """
+        super().__init__([[centre.x+radius, centre.y+radius]])
+        self.centre: Vector2D = centre
+        self.radius: int = radius
+        self.colour: Colour = colour
+        self.scale_factor: int = scale_factor
 
     def __str__(self):
-        return f'<circle cx="{self.cx}" cy="{self.cy}" r="{self.radius}" fill="rgba{self.colour}"/>'
+        """
+        Returns an SVG object string with proper formatting.
 
-# Internal class to store line SVG data, to be used when rendering the SVG for adjacency graph.
+        Returns:
+            str: A string in the format <circle cx="__" cy="__" r="__" fill="rgba(__)"/>
+        """
+        cx = self.centre.x * self.scale_factor
+        cy = self.centre.y * self.scale_factor
+        r = self.radius * self.scale_factor
+        return f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="rgba{self.colour}"/>'
+
 class _LineElement(_ElementBounds):
-    def __init__(self, x1, y1, x2, y2, colour, width):
-        super().__init__([[x1,y1], [x2,y2]])
-        self.x1 = x1
-        self.x2 = x2
-        self.y1 = y1
-        self.y2 = y2
+    """
+    Internal class to be used by SVGRenderer. Stores data for line SVG elements.
+
+    args:
+        point1 (Vector2D): Position of one end point of the line segment in (x,y) coordinates.
+        point2 (Vector2D): Position of the other end point of the line segment in (x,y) coordinates.
+        colour (Colour): Colour of the line in RGBA format.
+        width (int): Width of the line. Does NOT scale with scale_factor
+        scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
+    """
+    def __init__(
+            self,
+            point1: Vector2D,
+            point2: Vector2D,
+            colour: Colour,
+            width: int,
+            scale_factor: int = DEFAULT_SCALE_FACTOR
+        ):
+        """
+        Initialise a _LineElement object.
+
+        args:
+            point1 (Vector2D): Position of one end point of the line segment in (x,y) coordinates.
+            point2 (Vector2D): Position of the other end point of the line segment in (x,y) coordinates.
+            colour (Colour): Colour of the line in RGBA format.
+            width (int): Width of the line. Does NOT scale with scale_factor
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
+        """
+        super().__init__([np.array(point1), np.array(point2)])
+        self.point1 = point1
+        self.point2 = point2
         self.colour = colour
         self.width = width
+        self.scale_factor = scale_factor
     
     def __str__(self):
-        return f'<line x1="{self.x1}" y1="{self.y1}" x2="{self.x2}" y2="{self.y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
+        """
+        Returns an SVG object string with proper formatting.
+
+        Returns:
+            str: A string in the format <line x1="__" y1="__" x2="__" y2="__" stroke="rgba(__)" stroke-width="__" />
+        """
+        x1, y1 = self.point1 * self.scale_factor
+        x2, y2 = self.point2 * self.scale_factor
+        return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
     
 class _PolygonElement(_ElementBounds):
     def __init__(self, points = [], colour = (0,0,0,0), scale_factor = 20):

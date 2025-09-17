@@ -1,3 +1,6 @@
+import numpy as np
+from numpy.typing import NDArray
+
 class Vector2D:
     """
     Class to store and work with 2D coordinates. Helps to bridge formatting between Numpy and HTML points.
@@ -18,7 +21,7 @@ class Vector2D:
         self.x: int = x
         self.y: int = y
     
-    def __str__(self):
+    def __str__(self) -> str:
         """
         The str type conversion is suited for HTML elements that typically need coordinates in (x,y) format.
 
@@ -27,6 +30,12 @@ class Vector2D:
         """
         return f'({self.x}, {self.y})'
     
+    def __array__(self) -> NDArray[np.uint64]:
+        """
+        Cast this Vector2D object into a Numpy array of shape [x, y]
+        """
+        return np.array([self.x, self.y], dtype = np.uint64)
+
     def __add__(self, other):
         """
         Defines addition between 2 Vector2D objects.

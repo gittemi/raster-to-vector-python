@@ -274,9 +274,8 @@ class PixelAdjacencyGraph:
         return count
     
     def _set_adjacency_graph_svg_elements(self,
-                                          pixel_size = 20,
                                           mark_erroneous_nodes = True,
-                                          node_radius_ratio = 0.2,
+                                          node_radius = 0.2,
                                           node_colour = (0, 255, 0, 0.33),
                                           node_colour_failure = (255, 0, 0, 1.0),
                                           edge_colour = (0, 255, 0, 0.5),
@@ -287,14 +286,12 @@ class PixelAdjacencyGraph:
         if mark_erroneous_nodes:
             is_node_planar = self.get_non_planar_nodes()
 
-        node_radius = pixel_size * node_radius_ratio
-
         for row, col in np.ndindex(adjacency_matrix.shape[:2]):
             rendered_colour = node_colour
             if mark_erroneous_nodes and not is_node_planar[row, col]:
                 rendered_colour = node_colour_failure
-            cx = (col+0.5) * pixel_size
-            cy = (row+0.5) * pixel_size
+            cx = col + 0.5
+            cy = row + 0.5
             self.svg_renderer.add_circle(cx, cy, node_radius, rendered_colour)
         
         # Add graph edges
@@ -302,10 +299,10 @@ class PixelAdjacencyGraph:
             for i in range(4):
                 if(adjacency_matrix[row, col, i]):
                     next_row, next_col = self.get_neighbouring_node(row, col, i)
-                    x1 = (col+0.5) * pixel_size
-                    y1 = (row+0.5) * pixel_size
-                    x2 = (next_col+0.5) * pixel_size
-                    y2 = (next_row+0.5) * pixel_size
+                    x1 = col + 0.5
+                    y1 = row + 0.5
+                    x2 = next_col + 0.5
+                    y2 = next_row + 0.5
                     rendered_colour = edge_colour
                     if mark_erroneous_nodes\
                             and i in [0, 2]\
