@@ -3,6 +3,7 @@ from IPython.display import HTML
 
 from pixel_adjacency_graph import PixelAdjacencyGraph
 from vector_2d import Vector2D
+from colour import Colour
 from svg_renderer import SVGRenderer
 
 # TODO (P1): Use Google-style Class Docstring to comment all classes
@@ -196,14 +197,13 @@ class PixelVectorGraph:
                 e70.set_opposite_edge(e07)
 
         # Many edges do not separate distinct regions. Remove them
-        # self._delete_edges_without_colour_boundary()
+        self._delete_edges_without_colour_boundary()
 
         # For each intialised edge, set its next_edge. Note that every edge will have a next_edge
         for edge in self.graph_edges_list:
             next_node = edge.end_node
             for next_edge in next_node.edge_list:
-                if edge.pixel.id == next_edge.pixel.id:
-                # if next_edge.id != edge.opposite_edge.id and (np.array(edge.pixel.colour) == np.array(next_edge.pixel.colour)).all():
+                if edge.pixel.colour == next_edge.pixel.colour:
                     edge.next_edge = next_edge
                     break
 
@@ -273,10 +273,15 @@ class PixelVectorGraph:
     # as the edge carries no information.
     def _delete_edges_without_colour_boundary(self):
         for edge in self.graph_edges_list:
-            if (np.array(edge.pixel.colour) == np.array(edge.opposite_edge.pixel.colour)).all():
+            if edge.pixel.colour == edge.opposite_edge.pixel.colour:
                 edge.id = -1
                 edge.opposite_edge.id = -1
         self._delete_unallocated_edges()
+        
+        # Reassign IDs to the remaining edges
+        self.number_of_edges = len(self.graph_edges_list)
+        for i in range(self.number_of_edges):
+            self.graph_edges_list[i].id = i
 
     # Any elements in the list that are None or have negative ID are deleted
     def _delete_unallocated_edges(self):
@@ -285,6 +290,15 @@ class PixelVectorGraph:
             if edge is not None and edge.id >= 0:
                 cleaned_edges_list.append(edge)
         self.graph_edges_list = cleaned_edges_list
+
+        # For each node, delete invalid edges
+        for node in self.graph_nodes_list:
+            cleaned_edges_list = []
+            for edge in node.edge_list:
+                if edge is not None and edge.id >= 0:
+                    cleaned_edges_list.append(edge)
+            node.edge_list = cleaned_edges_list
+
 
     def _set_dual_graph_svg_elements(self):
         visited = np.zeros(self.number_of_edges, dtype=bool)

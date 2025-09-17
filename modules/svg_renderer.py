@@ -3,6 +3,7 @@ from colour import Colour
 from vector_2d import Vector2D
 
 DEFAULT_SCALE_FACTOR: int = 20
+DEFAULT_LINE_WIDTH: int = 2
 
 # TODO (P1): Use Google-style Class Docstring to comment all classes
 # TODO (P3): Write tests for this module
@@ -37,18 +38,33 @@ class SVGRenderer:
         new_element = _SquareElement(colour = colour, position = Vector2D(position[0], position[1]), side_length = square_side)
         self.svg_elements.append(new_element)
 
-    def add_line(self, x1, y1, x2, y2, colour, width):
-        new_element = _LineElement(Vector2D(x1, y1), Vector2D(x2, y2), colour, width)
+    def add_line(self, point1: Vector2D, point2: Vector2D, colour, width = DEFAULT_LINE_WIDTH, scale_factor = DEFAULT_SCALE_FACTOR):
+        """
+        Add a new line ot the SVG.
+
+        Attributes:
+            point1 (Vector2D): Position of one end point of the line segment in (x,y) coordinates.
+            point2 (Vector2D): Position of the other end point of the line segment in (x,y) coordinates.
+            colour (Colour): Colour of the line in RGBA format.
+            width (int): Width of the line. Does NOT scale with scale_factor. Defaults to DEFAULT_LINE_WIDTH
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
+        """
+        new_element = _LineElement(point1, point2, colour, width, scale_factor)
         self.svg_elements.append(new_element)
 
     def add_circle(self, cx, cy, radius, colour):
         new_element = _CircleElement(Vector2D(cx, cy), radius, colour)
         self.svg_elements.append(new_element)
 
-    def add_polygon(self,
-                    points = [],
-                    colour: Colour = Colour([0,0,0,0]),
-                    scale_factor = 20):
+    def add_polygon(self, points: list = [], colour: Colour = Colour([0,0,0,0]), scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        Add a new polygon to the SVG.
+
+        Args:
+            points (list): List of Vector2D objects denoting polygon vertices in order.
+            colour (Colour): Colour of the polygon in RGBA format. Fills the interior of the polygon.
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+        """
         new_element = _PolygonElement(points, colour, scale_factor)
         self.svg_elements.append(new_element)
 
@@ -114,7 +130,7 @@ class _SquareElement(_ElementBounds):
 
     Attributes:
         side_length (int): Length of the side of the square.
-        colour (Colour): Colour of the square in RGBA format. Fills the inside of the square.
+        colour (Colour): Colour of the square in RGBA format. Fills the interior of the square.
         position (Vector2D): Position of the top-left corner of the square in (x,y) coordinates.
         scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
     """
@@ -130,7 +146,7 @@ class _SquareElement(_ElementBounds):
 
         args:
             side_length (int): Length of the side of the square. Defaults to unit length 1
-            colour (Colour): Colour of the square in RGBA format. Fills the inside of the square. Defaults to transparent (0,0,0,0)
+            colour (Colour): Colour of the square in RGBA format. Fills the interior of the square. Defaults to transparent (0,0,0,0)
             position (Vector2D): Position of the top-left corner of the square in (x,y) coordinates. Defaults to origin (0,0)
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
@@ -164,7 +180,7 @@ class _CircleElement(_ElementBounds):
     Attributes:
         centre (Vector2D): Position of the centre of the circle in (x,y) coordinates.
         radius (int): Length of the radius of the circle.
-        colour (Colour): Colour of the square in RGBA format. Fills the inside of the square.
+        colour (Colour): Colour of the square in RGBA format. Fills the interior of the square.
         scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
     """
     def __init__(
@@ -180,7 +196,7 @@ class _CircleElement(_ElementBounds):
         args:
             centre (Vector2D): Position of the centre of the circle in (x,y) coordinates.
             radius (int): Length of the radius of the circle.
-            colour (Colour): Colour of the circle in RGBA format. Fills the inside of the circle.
+            colour (Colour): Colour of the circle in RGBA format. Fills the interior of the circle.
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
         super().__init__([[centre.x+radius, centre.y+radius]])
@@ -217,7 +233,7 @@ class _LineElement(_ElementBounds):
             point1: Vector2D,
             point2: Vector2D,
             colour: Colour,
-            width: int,
+            width: int = DEFAULT_LINE_WIDTH,
             scale_factor: int = DEFAULT_SCALE_FACTOR
         ):
         """
@@ -230,7 +246,7 @@ class _LineElement(_ElementBounds):
             width (int): Width of the line. Does NOT scale with scale_factor
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
-        super().__init__([np.array(point1), np.array(point2)])
+        super().__init__([np.array(point1) * scale_factor, np.array(point2) * scale_factor])
         self.point1 = point1
         self.point2 = point2
         self.colour = colour
@@ -254,7 +270,7 @@ class _PolygonElement(_ElementBounds):
 
     Attributes:
         points (list): List of Vector2D objects denoting polygon vertices in order.
-        colour (Colour): Colour of the polygon in RGBA format. Fills the inside of the polygon.
+        colour (Colour): Colour of the polygon in RGBA format. Fills the interior of the polygon.
         scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
     """
     def __init__(
@@ -268,7 +284,7 @@ class _PolygonElement(_ElementBounds):
 
         Args:
             points (list): List of Vector2D objects denoting polygon vertices in order.
-            colour (Colour): Colour of the polygon in RGBA format. Fills the inside of the polygon.
+            colour (Colour): Colour of the polygon in RGBA format. Fills the interior of the polygon.
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
         super().__init__([[point[0]*scale_factor, point[1]*scale_factor] for point in points])

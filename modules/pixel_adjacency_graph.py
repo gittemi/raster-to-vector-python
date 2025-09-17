@@ -2,6 +2,7 @@ import numpy as np
 from IPython.display import HTML
 
 from svg_renderer import SVGRenderer
+from vector_2d import Vector2D
 
 # TODO (P1): Use Google-style Class Docstring to comment all classes
 # TODO (P3): Write tests for this module
@@ -311,5 +312,5 @@ class PixelAdjacencyGraph:
                             and not is_node_planar[row, next_col]\
                             and not is_node_planar[next_row, col]:
                         rendered_colour = edge_colour_failure
-                    self.svg_renderer.add_line(x1, y1, x2, y2, rendered_colour, edge_width)
+                    self.svg_renderer.add_line(Vector2D(x1, y1), Vector2D(x2, y2), rendered_colour, edge_width)
     # end
