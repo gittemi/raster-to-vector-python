@@ -2,9 +2,63 @@ import numpy as np
 from IPython.display import HTML
 
 from pixel_adjacency_graph import PixelAdjacencyGraph
+from vector_2d import Vector2D
 from svg_renderer import SVGRenderer
 
 # TODO (P1): Use Google-style Class Docstring to comment all classes
+
+class _PixelVectorGraphNode:
+    # TODO (P1): Add Google-style Class Docstring
+    def __init__(
+            self,
+            id: int = -1,
+            position: Vector2D = Vector2D(0,0),
+            offset: Vector2D = Vector2D(0,0)
+        ):
+        """
+        Initialise a _PixelVectorGraphNode object.
+
+        args:
+            id (int): A unique identifier for the node. Used to check equality of two nodes
+            position (Vector2D): Position of the node in (x,y) coordinates. Defaults to origin (0,0)
+            offset (Vector2D): Applies an offset to the node's position in (x,y) coordinates. Defaults to (0,0)
+        """
+        self.id: int = id
+        self.position: Vector2D = position
+        self.offset: Vector2D = offset
+        self.edge_list: list = []
+
+    def __eq__(self, other) -> bool:
+        """
+        Two nodes are equal if both nodes have a non-negative ID and both IDs are equal.
+
+        Returns:
+            bool: True if both IDs are non-negative and equal, False otherwise.
+        """
+        return self.id >= 0 and self.id == other.id
+
+    def get_coordinates(self) -> Vector2D:
+        """
+        Returns coordinates of the node as a Vector2D object.
+
+        Returns:
+            Vector2D: Coordinates of the node based on position and offset.
+        """
+        return self.position + self.offset
+
+class _PixelVectorGraphEdge:
+    def __init__(self, id = -1, start_node = None, end_node = None, pixel = None, next_edge = None, opposite_edge = None):
+        self.id = id
+        self.start_node = start_node
+        self.end_node = end_node
+        self.pixel = pixel
+        self.next_edge = next_edge
+        self.opposite_edge = opposite_edge
+
+    # When setting an opposite edge, this method sets it for the opposite edge as well.
+    def set_opposite_edge(self, edge):
+        self.opposite_edge = edge
+        edge.opposite_edge = self
 
 class PixelVectorGraph:
     def __init__(self, pixel_art = None, adjacency_graph = None):
@@ -49,20 +103,20 @@ class PixelVectorGraph:
 
         # Create the nodes for the top-left grid box
         for index in range(9):
-            node_position = self._get_node_position(0, 0, index)
+            node_position = self._get_node_position(Vector2D(0, 0), index)
             self.graph_nodes_grid_box[0, 0, index] = self._create_new_node(node_position)
 
         # Create the nodes for each of the left column grid boxes
         for row in range(1, self.graph_nodes_grid_box.shape[0]):
             for index in [0, 1, 2, 3, 4, 6, 7, 8]:
-                node_position = self._get_node_position(row, 0, index)
+                node_position = self._get_node_position(Vector2D(0, row), index)
                 self.graph_nodes_grid_box[row, 0, index] = self._create_new_node(node_position)
             self.graph_nodes_grid_box[row, 0, 5] = self.graph_nodes_grid_box[row-1, 0, 7]
 
         # Create the nodes of each of the top row grid boxes
         for col in range(1, self.graph_nodes_grid_box.shape[1]):
             for index in range(8):
-                node_position = self._get_node_position(0, col, index)
+                node_position = self._get_node_position(Vector2D(col, 0), index)
                 self.graph_nodes_grid_box[0, col, index] = self._create_new_node(node_position)
             self.graph_nodes_grid_box[0, col, 8] = self.graph_nodes_grid_box[0, col-1, 6]
         
@@ -70,7 +124,7 @@ class PixelVectorGraph:
         for row in range(1, self.graph_nodes_grid_box.shape[0]):
             for col in range(1, self.graph_nodes_grid_box.shape[1]):
                 for index in [0, 1, 2, 3, 4, 6, 7]:
-                    node_position = self._get_node_position(row, col, index)
+                    node_position = self._get_node_position(Vector2D(col, row), index)
                     self.graph_nodes_grid_box[row, col, index] = self._create_new_node(node_position)
                 self.graph_nodes_grid_box[row, col, 5] = self.graph_nodes_grid_box[row-1, col, 7]
                 self.graph_nodes_grid_box[row, col, 8] = self.graph_nodes_grid_box[row, col-1, 6]
@@ -157,8 +211,19 @@ class PixelVectorGraph:
     # and adds the node to the list so they are iterable
     # TODO (P2): Consider taking the object as a parameter and passing it through the function.
     # The function can add ID and add the object to the list
-    def _create_new_node(self, position = (0,0), offset = (0,0)):
-        id = self.number_of_nodes
+    def _create_new_node(
+            self,
+            position: Vector2D = Vector2D(0,0),
+            offset: Vector2D = Vector2D(0,0)
+        ) -> _PixelVectorGraphNode:
+        """
+        Create a new _PixelVectorGraphNode object, gives it a unique id, and appends it to graph_nodes_list for traversal later.
+
+        Args:
+            position (Vector2D): Position of the node to be created. Defaults to origin (0,0)
+            offset (Vector2D): Offset of the created node. Defaults to no offset (0,0)
+        """
+        id: int = self.number_of_nodes
         self.number_of_nodes += 1
         new_node = _PixelVectorGraphNode(id, position, offset)
         self.graph_nodes_list.append(new_node)
@@ -177,17 +242,32 @@ class PixelVectorGraph:
         start_node.edge_list.append(new_edge)
         return new_edge
 
-    # Get the position of the node in (y,x) coordinates, with (0,0) as the top-left corner,
-    # x being the right direction, and y being the downward direction.
-    # and each grid box havingunit size length
-    def _get_node_position(self, row, col, node_index):
-        offsets = [(0.5, 0.5), (0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25),
-                   (0, 0.5), (0.5, 1), (1, 0.5), (0.5, 0)]
-        
-        node_y = row + offsets[node_index][0]
-        node_x = col + offsets[node_index][1]
+    def _get_node_position(self, adjacency_graph_node_position: Vector2D, node_index: int) -> Vector2D:
+        """
+        Given the position of an adjacency graph node and a corresponding index of a pixel graph node relative to it,
+        returns the position of the pixel graph node.
 
-        return (node_y, node_x)
+        Args:
+            adjacency_graph_node_position (Vector2D): Position of the adjacency graph node.
+            node_index (int): Index of the vector graph node relative to the adjacency graph node.
+
+        Returns:
+            Vector2D: Position of the pixel graph node.
+        """
+        offsets = [
+            Vector2D(0.5, 0.5),
+            Vector2D(0.25, 0.25),
+            Vector2D(0.75, 0.25),
+            Vector2D(0.75, 0.75),
+            Vector2D(0.25, 0.75),
+            Vector2D(0.5, 0),
+            Vector2D(1, 0.5),
+            Vector2D(0.5, 1),
+            Vector2D(0, 0.5)
+        ]
+
+        node_position: Vector2D = adjacency_graph_node_position + offsets[node_index]
+        return node_position
     
     # Any edges where the opposite edge has the same colour are deleted
     # as the edge carries no information.
@@ -216,35 +296,10 @@ class PixelVectorGraph:
                 colour = edge.pixel.colour
                 while edge is not None:
                     visited[edge.id] = True
-                    y, x = edge.start_node.get_coordinates()
-                    points.append([x,y])
+                    point: Vector2D = edge.start_node.get_coordinates()
+                    points.append(point)
                     edge = edge.next_edge
                     if edge is not None and edge.id == start_edge.id:
                         self.svg_renderer.add_polygon(points, colour)
                         break
 
-class _PixelVectorGraphNode:
-    def __init__(self, id = -1, position = (0,0), offset = (0,0)):
-        self.id = id
-        self.position = position
-        self.offset = offset
-        self.edge_list = []
-
-    def get_coordinates(self):
-        y = self.position[0] + self.offset[0]
-        x = self.position[1] + self.offset[1]
-        return y,x
-
-class _PixelVectorGraphEdge:
-    def __init__(self, id = -1, start_node = None, end_node = None, pixel = None, next_edge = None, opposite_edge = None):
-        self.id = id
-        self.start_node = start_node
-        self.end_node = end_node
-        self.pixel = pixel
-        self.next_edge = next_edge
-        self.opposite_edge = opposite_edge
-
-    # When setting an opposite edge, this method sets it for the opposite edge as well.
-    def set_opposite_edge(self, edge):
-        self.opposite_edge = edge
-        edge.opposite_edge = self

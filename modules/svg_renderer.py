@@ -140,7 +140,7 @@ class _SquareElement(_ElementBounds):
         self.position: Vector2D = position
         self.scale_factor: int = scale_factor
     
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns an SVG object string with proper formatting.
 
@@ -180,7 +180,7 @@ class _CircleElement(_ElementBounds):
         args:
             centre (Vector2D): Position of the centre of the circle in (x,y) coordinates.
             radius (int): Length of the radius of the circle.
-            colour (Colour): Colour of the square in RGBA format. Fills the inside of the circle.
+            colour (Colour): Colour of the circle in RGBA format. Fills the inside of the circle.
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
         super().__init__([[centre.x+radius, centre.y+radius]])
@@ -189,7 +189,7 @@ class _CircleElement(_ElementBounds):
         self.colour: Colour = colour
         self.scale_factor: int = scale_factor
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns an SVG object string with proper formatting.
 
@@ -205,7 +205,7 @@ class _LineElement(_ElementBounds):
     """
     Internal class to be used by SVGRenderer. Stores data for line SVG elements.
 
-    args:
+    Attributes:
         point1 (Vector2D): Position of one end point of the line segment in (x,y) coordinates.
         point2 (Vector2D): Position of the other end point of the line segment in (x,y) coordinates.
         colour (Colour): Colour of the line in RGBA format.
@@ -223,7 +223,7 @@ class _LineElement(_ElementBounds):
         """
         Initialise a _LineElement object.
 
-        args:
+        Args:
             point1 (Vector2D): Position of one end point of the line segment in (x,y) coordinates.
             point2 (Vector2D): Position of the other end point of the line segment in (x,y) coordinates.
             colour (Colour): Colour of the line in RGBA format.
@@ -237,7 +237,7 @@ class _LineElement(_ElementBounds):
         self.width = width
         self.scale_factor = scale_factor
     
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns an SVG object string with proper formatting.
 
@@ -249,14 +249,41 @@ class _LineElement(_ElementBounds):
         return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
     
 class _PolygonElement(_ElementBounds):
-    def __init__(self, points = [], colour = (0,0,0,0), scale_factor = 20):
+    """
+    Internal class to be used by SVGRenderer. Stores data for polygon SVG elements.
+
+    Attributes:
+        points (list): List of Vector2D objects denoting polygon vertices in order.
+        colour (Colour): Colour of the polygon in RGBA format. Fills the inside of the polygon.
+        scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+    """
+    def __init__(
+            self,
+            points: list = [],
+            colour: Colour = Colour([0,0,0,0]),
+            scale_factor: int = DEFAULT_SCALE_FACTOR
+        ):
+        """
+        Initialise a _PolygonElement object.
+
+        Args:
+            points (list): List of Vector2D objects denoting polygon vertices in order.
+            colour (Colour): Colour of the polygon in RGBA format. Fills the inside of the polygon.
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
+        """
         super().__init__([[point[0]*scale_factor, point[1]*scale_factor] for point in points])
         self.points = points
         self.colour = colour
         self.scale_factor = scale_factor
     
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Returns an SVG object string with proper formatting.
+
+        Returns:
+            str: A string in the format <polygon points="__" fill="rgba(__)" />
+        """
         points_string = ''
         for point in self.points:
-            points_string += str(point[0]*self.scale_factor) + ',' + str(point[1]*self.scale_factor) + ' '
+            points_string += str(point.x*self.scale_factor) + ',' + str(point.y*self.scale_factor) + ' '
         return f'<polygon points="{points_string}" fill="rgba{self.colour}" />'

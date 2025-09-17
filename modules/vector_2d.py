@@ -6,20 +6,20 @@ class Vector2D:
     Class to store and work with 2D coordinates. Helps to bridge formatting between Numpy and HTML points.
 
     Attributes:
-        x (int): Horizontal coordinate. Positive x is towards the rightward direction.
-        y (int): Vertical coordinate. Positive y is towards the downward direction.
+        x (int | float): Horizontal coordinate. Positive x is towards the rightward direction.
+        y (int | float): Vertical coordinate. Positive y is towards the downward direction.
     """
 
-    def __init__(self, x: int, y: int):
+    def __init__(self, x: int | float, y: int | float):
         """
         Initialise a Vector2D object.
 
         Args:
-            x (int): Horizontal coordinate. Positive x is towards the rightward direction.
-            y (int): Vertical coordinate. Positive y is towards the downward direction.
+            x (int | float): Horizontal coordinate. Positive x is towards the rightward direction.
+            y (int | float): Vertical coordinate. Positive y is towards the downward direction.
         """
-        self.x: int = x
-        self.y: int = y
+        self.x: int | float = x
+        self.y: int | float = y
     
     def __str__(self) -> str:
         """
@@ -30,6 +30,7 @@ class Vector2D:
         """
         return f'({self.x}, {self.y})'
     
+    # TODO (P1): This type conversion would not work if the variables are of float type. Handle that case as well.
     def __array__(self) -> NDArray[np.uint64]:
         """
         Cast this Vector2D object into a Numpy array of shape [x, y]
