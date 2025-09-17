@@ -293,7 +293,7 @@ class PixelAdjacencyGraph:
                 rendered_colour = node_colour_failure
             cx = col + 0.5
             cy = row + 0.5
-            self.svg_renderer.add_circle(cx, cy, node_radius, rendered_colour)
+            self.svg_renderer.add_circle(Vector2D(cx, cy), node_radius, rendered_colour)
         
         # Add graph edges
         for row, col in np.ndindex(adjacency_matrix.shape[:2]):

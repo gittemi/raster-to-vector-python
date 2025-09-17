@@ -7,6 +7,7 @@ from tkinter import filedialog
 from IPython.display import HTML
 
 from svg_renderer import SVGRenderer
+from vector_2d import Vector2D
 from colour import Colour
 
 # TODO (P1): Use Google-style Class Docstring to comment all classes
@@ -157,6 +158,6 @@ class PixelArtRaster:
         # TODO (P4): Validate that pixel_art has the correct shape and data type. Throw exception if not 
         for row, col in np.ndindex(self.pixel_grid.shape[:2]):
             pixel_colour: Colour = self.pixel_grid[row, col].colour
-            pixel_position = (col, row)
+            pixel_position = Vector2D(col, row)
 
             self.svg_renderer.add_square(colour = pixel_colour, position = pixel_position)

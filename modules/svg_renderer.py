@@ -5,44 +5,68 @@ from vector_2d import Vector2D
 DEFAULT_SCALE_FACTOR: int = 20
 DEFAULT_LINE_WIDTH: int = 2
 
-# TODO (P1): Use Google-style Class Docstring to comment all classes
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 
 class SVGRenderer:
-    # TODO (P3): Instead of hardcoding constants, create constant variables at the top of the file
-    # TODO (P1): Make scale_factor universally applicable, to circles, squares, polygons
-    def __init__(self, scale_factor = DEFAULT_SCALE_FACTOR):
+    def __init__(self, scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        Initialise an SVGRenderer object.
+
+        Args:
+            scale_factor (int): All SVG elements are scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
+        """
         self.scale_factor = scale_factor
         self.svg_elements = []
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Returns a multi-line string, the HTML div for rendering the SVG.
+
+        Returns:
+            str: HTML div for rendering the SVG.
+        """
         return self.get_html_code_for_svg()
 
 # PUBLIC
 
     '''Setters'''
 
-    # Remove all SVG elements from this object
     def clear(self):
+        """
+        Remove all SVG elements from this object.
+        """
         self.svg_elements = []
 
-    def add_svg_objects(self, svg_objects_list):
+    # TODO (P3): The parameter here can be another SVG object. This method can even be an __add__() method.
+    def add_svg_objects(self, svg_objects_list: list):
+        """
+        Given a list of SVG objects, add them to the list of SVG objects list.
+
+        Args:
+            svg_objects_list (list): List of SVG objects to be added to this object's list.
+        """
         self.svg_elements.extend(svg_objects_list)
 
-    def add_square(self,
-                   square_side: int = 1,    # Length of the square size. Unit square by default
-                   colour: Colour = Colour([0,0,0,0]),  # Colour in RGBA format. 
-                   position = (0,0)     # Position of the center of the square. TODO (P1): Replace with Vector2D class
-                   ):
-        new_element = _SquareElement(colour = colour, position = Vector2D(position[0], position[1]), side_length = square_side)
+    # TODO (P2): In add_square, add_line, add_circle, add_polygon, it does not make much sense to take scale_factor. Remove that parameter.
+    def add_square(self, square_side: int = 1, colour: Colour = Colour([0,0,0,0]), position: Vector2D = Vector2D(0,0), scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        Add a new square to the SVG.
+
+        Args:
+            square_side (int): Length of the side of the square. Defaults to unit length 1
+            colour (Colour): Colour of the square in RGBA format. Fills the interior of the square. Defaults to transparent (0,0,0,0)
+            position (Vector2D): Position of the top-left corner of the square in (x,y) coordinates. Defaults to origin (0,0)
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
+        """
+        new_element = _SquareElement(colour = colour, position = position, side_length = square_side)
         self.svg_elements.append(new_element)
 
     def add_line(self, point1: Vector2D, point2: Vector2D, colour, width = DEFAULT_LINE_WIDTH, scale_factor = DEFAULT_SCALE_FACTOR):
         """
-        Add a new line ot the SVG.
+        Add a new line to the SVG.
 
-        Attributes:
+        Args:
             point1 (Vector2D): Position of one end point of the line segment in (x,y) coordinates.
             point2 (Vector2D): Position of the other end point of the line segment in (x,y) coordinates.
             colour (Colour): Colour of the line in RGBA format.
@@ -52,8 +76,17 @@ class SVGRenderer:
         new_element = _LineElement(point1, point2, colour, width, scale_factor)
         self.svg_elements.append(new_element)
 
-    def add_circle(self, cx, cy, radius, colour):
-        new_element = _CircleElement(Vector2D(cx, cy), radius, colour)
+    def add_circle(self, centre: Vector2D, radius, colour, scale_factor = DEFAULT_SCALE_FACTOR):
+        """
+        Add a new circle to the SVG.
+
+        Args:
+            centre (Vector2D): Position of the centre of the circle in (x,y) coordinates.
+            radius (int): Length of the radius of the circle.
+            colour (Colour): Colour of the square in RGBA format. Fills the interior of the square.
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+        """
+        new_element = _CircleElement(centre, radius, colour)
         self.svg_elements.append(new_element)
 
     def add_polygon(self, points: list = [], colour: Colour = Colour([0,0,0,0]), scale_factor: int = DEFAULT_SCALE_FACTOR):
@@ -70,13 +103,25 @@ class SVGRenderer:
 
     '''Getters'''
 
-    # Returns the list of all svg objects
-    def get_all_svg_objects(self):
+    # TODO (P2): It is a better practice to implement __add__() to fit the use case of this method.
+    # Exposing a list of private objects is discouraged.
+    def get_all_svg_objects(self) -> list:
+        """
+        Get the list of all svg objects in this instance.
+
+        Returns:
+            list: list of all svg objects.
+        """
         return self.svg_elements
 
     # TODO (P3): Take padding as a paramter
-    # TODO (P1): Remove render_square_elements and render_dual_graph as parameters
-    def get_html_code_for_svg(self):
+    def get_html_code_for_svg(self) -> str:
+        """
+        Get a multi-line string, the HTML div for rendering the SVG.
+
+        Returns:
+            str: HTML div for rendering the SVG.
+        """
         svg_code = self.get_svg_code()
         svg_code_indented = '\n'.join('\t' + line for line in svg_code.splitlines())
         html_open_code = '<div style="background-color: transparent; padding: 0px;">'
@@ -85,10 +130,18 @@ class SVGRenderer:
         html_code = html_open_code + '\n' + svg_code_indented + '\n' + html_close_code
         return html_code
 
-    # TODO (P1): Remove render_square_elements and render_dual_graph as parameters
-    def get_svg_code(self):
+    # TODO (P4): Having both get_html_code_for_svg() and get_svg_code() seems redundant.
+    # If both are not needed, consider combining the methods.
+    def get_svg_code(self) -> str:
+        """
+        Get a multi-line string, the HTML svg block containing all the SVG elements.
+
+        Returns:
+            str: HTML svg block containing all the SVG elements.
+        """
         canvas_width, canvas_height = self._get_canvas_size()
 
+        # TODO (P4): The hardcodeed aspects of the string below can be made constants at the top of the file.
         svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" shape-rendering="crispEdges" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
         svg_close_code = '</svg>'
         svg_elements_code = '\n'.join('\t' + str(svg_element) for svg_element in self.svg_elements)
@@ -96,26 +149,37 @@ class SVGRenderer:
         svg_code = svg_open_code + '\n' + svg_elements_code + '\n' + svg_close_code
         return svg_code
 
-    def export_svg_html_code(self, export_path, render_square_elements = True, render_adjacency_graph = True):
-        html_code = self.get_html_code_for_svg(render_square_elements, render_adjacency_graph)
+    # TODO (P4): Check if the exported SVG cann be opened by SVG editors.
+    def export_svg_html_code(self, export_path):
+        """
+        Export the HTML div for the SVG object. Allows it to be opened by SVG viewers.
+        """
+        html_code = self.get_html_code_for_svg()
         with open(export_path, "w", encoding="utf-8") as f:
             f.write(html_code)
 
 # PRIVATE
 
-    # Get the size of the canvas that fits all the elements exactly
-    # Returns width and height of the canvas in that order
-    def _get_canvas_size(self):
+    def _get_canvas_size(self) -> Vector2D:
+        """
+        Get the size of the canvas that fits all the elements exactly.
+
+        Returns:
+            Vector2D: Coordinate of the bottom-right point of the canvas. Stores canvas width and canvas height respectively.
+        """
         canvas_width = 0
         canvas_height = 0
         for element in self.svg_elements:
             canvas_width = max(canvas_width, element.bounds[0])
             canvas_height = max(canvas_height, element.bounds[1])
-        return canvas_width, canvas_height
+        return Vector2D(canvas_width, canvas_height)
 
-# All SVG element classes should inherit this. Used to determine appropriate canvas size 
 # TODO (P2): Incorporate scale_factor into this class and rename to something more applicable
 class _ElementBounds:
+    """
+    All SVG element classes should inherit this.
+    Used to determine appropriate canvas size that holds all SVG elements in SVGRenderer.
+    """
     def __init__(self, points=[]):
         self.bounds = [0,0]
         for point in points:
