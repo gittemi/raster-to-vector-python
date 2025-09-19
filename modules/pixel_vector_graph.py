@@ -48,13 +48,19 @@ class _PixelVectorGraphNode:
         return self.position + self.offset
 
 class _PixelVectorGraphEdge:
-    def __init__(self, id = -1, start_node = None, end_node = None, pixel = None, next_edge = None, opposite_edge = None):
-        self.id = id
-        self.start_node = start_node
-        self.end_node = end_node
+    def __init__(
+            self,id: int = -1,
+            start_node: _PixelVectorGraphNode = None,
+            end_node: _PixelVectorGraphNode = None,
+            pixel = None, # TODO (P1): Check what type this is
+            next_edge = None,
+            opposite_edge = None):
+        self.id: int = id
+        self.start_node: _PixelVectorGraphNode = start_node
+        self.end_node: _PixelVectorGraphNode = end_node
         self.pixel = pixel
-        self.next_edge = next_edge
-        self.opposite_edge = opposite_edge
+        self.next_edge: _PixelVectorGraphEdge = next_edge
+        self.opposite_edge: _PixelVectorGraphEdge = opposite_edge
 
     # When setting an opposite edge, this method sets it for the opposite edge as well.
     def set_opposite_edge(self, edge):
@@ -74,9 +80,11 @@ class PixelVectorGraph:
 
 # PUBLIC
 
-    def render(self):
+    def render(self, highlight_pixel_graph_edges: bool = False):
         self.svg_renderer.clear()
         self._set_dual_graph_svg_elements()
+        if highlight_pixel_graph_edges:
+            self._set_dual_graph_edge_svg_elements_for_debugging()
         return HTML(self.svg_renderer.get_html_code_for_svg())
 
     def construct_dual_graph(self, adjacency_graph = None):
@@ -85,6 +93,25 @@ class PixelVectorGraph:
 
         self._initialize_graph_nodes()
         self._initialize_graph_edges()
+
+    def simplify_dual_graph(self):
+        for node in self.graph_nodes_list:
+            if len(node.edge_list) != 2:
+                continue
+            edge0: _PixelVectorGraphEdge = node.edge_list[0]
+            edge1: _PixelVectorGraphEdge = node.edge_list[1]
+            node0: _PixelVectorGraphNode = edge0.end_node
+            node1: _PixelVectorGraphNode = edge1.end_node
+
+            edge0.opposite_edge.end_node = node1
+            edge1.opposite_edge.opposite_edge = node0
+
+            edge0.id = edge1.id = -1
+            node.edge_list = []
+            node.id = -1
+
+        self._delete_unallocated_nodes()
+        self._delete_unallocated_edges()
 
 # PRIVATE
 
@@ -197,13 +224,14 @@ class PixelVectorGraph:
                 e70.set_opposite_edge(e07)
 
         # Many edges do not separate distinct regions. Remove them
-        self._delete_edges_without_colour_boundary()
+        # self._delete_edges_without_colour_boundary()
 
         # For each intialised edge, set its next_edge. Note that every edge will have a next_edge
         for edge in self.graph_edges_list:
             next_node = edge.end_node
             for next_edge in next_node.edge_list:
-                if edge.pixel.colour == next_edge.pixel.colour:
+                if edge.pixel.id == next_edge.pixel.id:
+                # if edge.pixel.colour == next_edge.pixel.colour:
                     edge.next_edge = next_edge
                     break
 
@@ -277,11 +305,6 @@ class PixelVectorGraph:
                 edge.id = -1
                 edge.opposite_edge.id = -1
         self._delete_unallocated_edges()
-        
-        # Reassign IDs to the remaining edges
-        self.number_of_edges = len(self.graph_edges_list)
-        for i in range(self.number_of_edges):
-            self.graph_edges_list[i].id = i
 
     # Any elements in the list that are None or have negative ID are deleted
     def _delete_unallocated_edges(self):
@@ -291,6 +314,11 @@ class PixelVectorGraph:
                 cleaned_edges_list.append(edge)
         self.graph_edges_list = cleaned_edges_list
 
+        # Reassign IDs to the remaining edges
+        self.number_of_edges = len(self.graph_edges_list)
+        for i in range(self.number_of_edges):
+            self.graph_edges_list[i].id = i
+
         # For each node, delete invalid edges
         for node in self.graph_nodes_list:
             cleaned_edges_list = []
@@ -299,6 +327,17 @@ class PixelVectorGraph:
                     cleaned_edges_list.append(edge)
             node.edge_list = cleaned_edges_list
 
+    def _delete_unallocated_nodes(self):
+        cleaned_nodes_list = []
+        for node in self.graph_nodes_list:
+            if node is not None and node.id >= 0:
+                cleaned_nodes_list.append(node)
+        self.graph_nodes_list = cleaned_nodes_list
+
+        # Reassign IDs to the remaining nodes
+        self.number_of_nodes = len(self.graph_nodes_list)
+        for i in range(self.number_of_nodes):
+            self.graph_nodes_list[i].id = i
 
     def _set_dual_graph_svg_elements(self):
         visited = np.zeros(self.number_of_edges, dtype=bool)
@@ -316,4 +355,8 @@ class PixelVectorGraph:
                     if edge is not None and edge.id == start_edge.id:
                         self.svg_renderer.add_polygon(points, colour)
                         break
-
+    
+    def _set_dual_graph_edge_svg_elements_for_debugging(self):
+        for edge in self.graph_edges_list:
+            # start_node: _PixelVectorGraphNode = edge.start_node
+            self.svg_renderer.add_line(edge.start_node.get_coordinates(), edge.end_node.get_coordinates(), Colour([0, 255, 0, 255]))

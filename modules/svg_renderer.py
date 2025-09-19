@@ -62,7 +62,7 @@ class SVGRenderer:
         new_element = _SquareElement(colour = colour, position = position, side_length = square_side)
         self.svg_elements.append(new_element)
 
-    def add_line(self, point1: Vector2D, point2: Vector2D, colour, width = DEFAULT_LINE_WIDTH, scale_factor = DEFAULT_SCALE_FACTOR):
+    def add_line(self, point1: Vector2D, point2: Vector2D, colour: Colour = Colour([0,0,0,0]), width = DEFAULT_LINE_WIDTH, scale_factor = DEFAULT_SCALE_FACTOR):
         """
         Add a new line to the SVG.
 
