@@ -106,10 +106,15 @@ class PixelVectorGraph:
             node0: _PixelVectorGraphNode = edge0.end_node
             node1: _PixelVectorGraphNode = edge1.end_node
 
+            edge0.start_node = node1
+            edge1.start_node = node0
             edge0.opposite_edge.end_node = node1
-            edge1.opposite_edge.opposite_edge = node0
+            edge1.opposite_edge.end_node = node0
 
-            edge0.id = edge1.id = -1
+            edge0.opposite_edge.set_opposite_edge(edge1.opposite_edge)
+
+            edge0.id = -1
+            edge1.id = -1
             node.edge_list = []
             node.id = -1
 
