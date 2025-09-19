@@ -60,8 +60,10 @@ class PixelAdjacencyGraph:
 
         return next_row, next_col
     
-    def render(self, render_pixel_art = True, render_adjacency_graph = True):
+    def render(self, render_pixel_art = True, render_adjacency_graph = True, svg_scale_factor: int = None):
         self.svg_renderer.clear()
+        if svg_scale_factor is not None:
+            self.svg_renderer.scale_factor = svg_scale_factor
 
         if render_pixel_art:
             pixel_art_svg_elements = self.pixel_art_raster.svg_renderer.get_all_svg_objects()

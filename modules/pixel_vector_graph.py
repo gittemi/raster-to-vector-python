@@ -76,12 +76,15 @@ class PixelVectorGraph:
         self.graph_nodes_list = []
         self.graph_edges_list = []
         self.graph_nodes_grid_box = []
-        self.svg_renderer = SVGRenderer(pixel_art.get_pixel_art_image())
+        self.svg_renderer = SVGRenderer()
 
 # PUBLIC
 
-    def render(self, highlight_pixel_graph_edges: bool = False):
+    def render(self, highlight_pixel_graph_edges: bool = False, svg_scale_factor: int = None):
         self.svg_renderer.clear()
+        if svg_scale_factor is not None:
+            self.svg_renderer.scale_factor = svg_scale_factor
+
         self._set_dual_graph_svg_elements()
         if highlight_pixel_graph_edges:
             self._set_dual_graph_edge_svg_elements_for_debugging()

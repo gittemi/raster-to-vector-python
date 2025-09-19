@@ -20,13 +20,17 @@ class _Pixel:
 class PixelArtRaster:
     def __init__(self, 
                  input_raster: NDArray[np.uint64] = None,
-                 reduce_input_raster: bool = False):
+                 reduce_input_raster: bool = False,
+                 svg_scale_factor: int = None
+                ):
         self.pixel_count: int = 0
         self.input_raster: NDArray[np.uint64] = input_raster
         self.reduce_input_raster: bool = reduce_input_raster
         self.pixel_grid: NDArray[_Pixel] = None
         self.input_raster_file_path: str = None
-        self.svg_renderer: SVGRenderer = SVGRenderer()
+        self.svg_renderer: SVGRenderer = SVGRenderer(svg_scale_factor)
+        # if svg_scale_factor is not None:
+        #     self.svg_renderer.scale_factor = svg_scale_factor
 
 # PUBLIC
 

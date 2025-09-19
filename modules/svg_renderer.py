@@ -17,6 +17,8 @@ class SVGRenderer:
             scale_factor (int): All SVG elements are scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
         self.scale_factor = scale_factor
+        if scale_factor is None:
+            self.scale_factor = DEFAULT_SCALE_FACTOR
         self.svg_elements = []
 
     def __str__(self) -> str:
@@ -139,11 +141,15 @@ class SVGRenderer:
         Returns:
             str: HTML svg block containing all the SVG elements.
         """
+        for svg_element in self.svg_elements:
+            svg_element.set_scale_factor(self.scale_factor)
+
         canvas_width, canvas_height = self._get_canvas_size()
 
         # TODO (P4): The hardcodeed aspects of the string below can be made constants at the top of the file.
         svg_open_code = f'<svg width="{canvas_width}" height="{canvas_height}" shape-rendering="crispEdges" style="background-color: transparent;" xmlns="http://www.w3.org/2000/svg">'
         svg_close_code = '</svg>'
+
         svg_elements_code = '\n'.join('\t' + str(svg_element) for svg_element in self.svg_elements)
 
         svg_code = svg_open_code + '\n' + svg_elements_code + '\n' + svg_close_code
@@ -174,21 +180,38 @@ class SVGRenderer:
             canvas_height = max(canvas_height, element.bounds[1])
         return Vector2D(canvas_width, canvas_height)
 
-# TODO (P2): Incorporate scale_factor into this class and rename to something more applicable
-class _ElementBounds:
+class _SVGElement:
     """
-    All SVG element classes should inherit this.
+    Internal abstract class All SVG element classes should inherit this.
     Used to determine appropriate canvas size that holds all SVG elements in SVGRenderer.
     """
-    def __init__(self, points=[]):
-        self.bounds = [0,0]
-        for point in points:
-            self.bounds = [
-                max(self.bounds[0], point[0]),
-                max(self.bounds[1], point[1])
-            ]
+    def __init__(self, bound_points: list = [], scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        Create a _SVGElement object
 
-class _SquareElement(_ElementBounds):
+        Args:
+            bound_points (list): List of Vector2D points that must be contained in the SVG file, before scaling.
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+        """
+        self.bound_points = bound_points
+        self.set_scale_factor(scale_factor = scale_factor)
+    
+    def set_scale_factor(self, scale_factor: int):
+        """
+        Setter for scale_factor. Also adjusts the bounds of the element accordingly.
+
+        Args:
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+        """
+        self.scale_factor = scale_factor
+        self.bounds = Vector2D(0,0)
+        for point in self.bound_points:
+            self.bounds = Vector2D(
+                max(self.bounds[0], point[0] * self.scale_factor),
+                max(self.bounds[1], point[1] * self.scale_factor)
+            )
+
+class _SquareElement(_SVGElement):
     """
     Internal class to be used by SVGRenderer. Stores data for square SVG elements.
 
@@ -214,11 +237,10 @@ class _SquareElement(_ElementBounds):
             position (Vector2D): Position of the top-left corner of the square in (x,y) coordinates. Defaults to origin (0,0)
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
-        super().__init__([[(position[0] + side_length)*scale_factor, (position[1] + side_length)*scale_factor]])
+        super().__init__([Vector2D(position[0] + side_length, position[1] + side_length)], scale_factor)
         self.side_length: int = side_length
         self.colour: Colour = colour
         self.position: Vector2D = position
-        self.scale_factor: int = scale_factor
     
     def __str__(self) -> str:
         """
@@ -237,7 +259,7 @@ class _SquareElement(_ElementBounds):
             f'fill="rgba{fill}" '+ \
             f'transform="translate{transform}"/>'
 
-class _CircleElement(_ElementBounds):
+class _CircleElement(_SVGElement):
     """
     Internal class to be used by SVGRenderer. Stores data for circle SVG elements.
 
@@ -263,11 +285,10 @@ class _CircleElement(_ElementBounds):
             colour (Colour): Colour of the circle in RGBA format. Fills the interior of the circle.
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
-        super().__init__([[centre.x+radius, centre.y+radius]])
+        super().__init__([Vector2D(centre.x+radius, centre.y+radius)], scale_factor)
         self.centre: Vector2D = centre
         self.radius: int = radius
         self.colour: Colour = colour
-        self.scale_factor: int = scale_factor
 
     def __str__(self) -> str:
         """
@@ -281,7 +302,7 @@ class _CircleElement(_ElementBounds):
         r = self.radius * self.scale_factor
         return f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="rgba{self.colour}"/>'
 
-class _LineElement(_ElementBounds):
+class _LineElement(_SVGElement):
     """
     Internal class to be used by SVGRenderer. Stores data for line SVG elements.
 
@@ -310,12 +331,11 @@ class _LineElement(_ElementBounds):
             width (int): Width of the line. Does NOT scale with scale_factor
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
-        super().__init__([np.array(point1) * scale_factor, np.array(point2) * scale_factor])
+        super().__init__([point1, point2], scale_factor)
         self.point1 = point1
         self.point2 = point2
         self.colour = colour
         self.width = width
-        self.scale_factor = scale_factor
     
     def __str__(self) -> str:
         """
@@ -328,7 +348,7 @@ class _LineElement(_ElementBounds):
         x2, y2 = self.point2 * self.scale_factor
         return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
     
-class _PolygonElement(_ElementBounds):
+class _PolygonElement(_SVGElement):
     """
     Internal class to be used by SVGRenderer. Stores data for polygon SVG elements.
 
@@ -351,10 +371,10 @@ class _PolygonElement(_ElementBounds):
             colour (Colour): Colour of the polygon in RGBA format. Fills the interior of the polygon.
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
-        super().__init__([[point[0]*scale_factor, point[1]*scale_factor] for point in points])
+        super().__init__(points, scale_factor)
         self.points = points
         self.colour = colour
-        self.scale_factor = scale_factor
+        # self.scale_factor = scale_factor
     
     def __str__(self) -> str:
         """
