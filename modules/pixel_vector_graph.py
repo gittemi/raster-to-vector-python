@@ -125,6 +125,7 @@ class PixelVectorGraph:
 
         self._delete_unallocated_nodes()
         self._delete_unallocated_edges()
+        self._delete_edges_without_colour_boundary()
 
     # TODO (P0): Implement this method
     def resolve_t_junctions_in_simplified_vector_graph(self):
@@ -240,9 +241,6 @@ class PixelVectorGraph:
                 e60.set_opposite_edge(e06)
                 e70.set_opposite_edge(e07)
 
-        # Many edges do not separate distinct regions. Remove them
-        # self._delete_edges_without_colour_boundary()
-
         # For each intialised edge, set its next_edge. Note that every edge will have a next_edge
         for edge in self.graph_edges_list:
             next_node = edge.end_node
@@ -322,6 +320,13 @@ class PixelVectorGraph:
                 edge.id = -1
                 edge.opposite_edge.id = -1
         self._delete_unallocated_edges()
+
+        for edge in self.graph_edges_list:
+            next_node = edge.end_node
+            for next_edge in next_node.edge_list:
+                if edge.pixel.colour == next_edge.pixel.colour:
+                    edge.next_edge = next_edge
+                    break
 
     # Any elements in the list that are None or have negative ID are deleted
     def _delete_unallocated_edges(self):
