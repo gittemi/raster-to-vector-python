@@ -61,6 +61,7 @@ class _PixelVectorGraphEdge:
         self.pixel = pixel
         self.next_edge: _PixelVectorGraphEdge = next_edge
         self.opposite_edge: _PixelVectorGraphEdge = opposite_edge
+        self.is_dead_end_edge: bool = False
 
     # When setting an opposite edge, this method sets it for the opposite edge as well.
     def set_opposite_edge(self, edge):
@@ -80,7 +81,7 @@ class PixelVectorGraph:
 
 # PUBLIC
 
-    def render(self, highlight_pixel_graph_edges: bool = False, svg_scale_factor: int = None):
+    def render(self, highlight_pixel_graph_edges: bool = False, highlight_t_junction_edges = False, svg_scale_factor: int = None):
         self.svg_renderer.clear()
         if svg_scale_factor is not None:
             self.svg_renderer.scale_factor = svg_scale_factor
@@ -88,6 +89,10 @@ class PixelVectorGraph:
         self._set_dual_graph_svg_elements()
         if highlight_pixel_graph_edges:
             self._set_dual_graph_edge_svg_elements_for_debugging()
+    
+        if highlight_t_junction_edges:
+            self._set_dual_graph_edge_t_junction_svg_elements()
+
         return HTML(self.svg_renderer.get_html_code_for_svg())
 
     def construct_dual_graph(self, adjacency_graph = None):
@@ -120,6 +125,10 @@ class PixelVectorGraph:
 
         self._delete_unallocated_nodes()
         self._delete_unallocated_edges()
+
+    # TODO (P0): Implement this method
+    def resolve_t_junctions_in_simplified_vector_graph(self):
+        pass
 
 # PRIVATE
 
@@ -366,5 +375,10 @@ class PixelVectorGraph:
     
     def _set_dual_graph_edge_svg_elements_for_debugging(self):
         for edge in self.graph_edges_list:
-            # start_node: _PixelVectorGraphNode = edge.start_node
             self.svg_renderer.add_line(edge.start_node.get_coordinates(), edge.end_node.get_coordinates(), Colour([0, 255, 0, 255]))
+
+    def _set_dual_graph_edge_t_junction_svg_elements(self):
+        for edge in self.graph_edges_list:
+            if not edge.is_dead_end_edge:
+                continue
+            self.svg_renderer.add_line(edge.start_node.get_coordinates(), edge.end_node.get_coordinates(), Colour([0, 0, 255, 255]))
