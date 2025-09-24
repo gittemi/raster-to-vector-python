@@ -387,3 +387,78 @@ class _PolygonElement(_SVGElement):
         for point in self.points:
             points_string += str(point.x*self.scale_factor) + ',' + str(point.y*self.scale_factor) + ' '
         return f'<polygon points="{points_string}" fill="rgba{self.colour}" />'
+
+class _QuadraticBezierPoints:
+    """
+    Internal class to be used by _PiecewiseBSplineElement. Contains the 3 points for one quadratic Bezier curve.
+
+    Attributes:
+        p0 (Vector2D): 1st point of the quadratic Bezier curve.
+        p1 (Vector2D): 2nd point of the quadratic Bezier curve.
+        p2 (Vector2D): 3rd point of the quadratic Bezier curve.
+    """
+    def __init__(self, p0: Vector2D, p1: Vector2D, p2: Vector2D):
+        """
+        Initialise a _QuadraticBezierPoints object.
+
+        Args:
+            p0 (Vector2D): 1st point of the quadratic Bezier curve.
+            p1 (Vector2D): 2nd point of the quadratic Bezier curve.
+            p2 (Vector2D): 3rd point of the quadratic Bezier curve.
+        """
+        self.p0: Vector2D = p0
+        self.p1: Vector2D = p1
+        self.p2: Vector2D = p2
+    
+    def get_points_list(self) -> list:
+        """
+        Return a list of the 3 Bezier curve points in order.
+
+        Returns:
+            list: List of 3 Vector2D points, the quadratic Bezier curve points in order.
+        """
+        return [self.p0, self.p1, self.p2]
+
+class _PiecewiseBSplineElement(_SVGElement):
+    """
+    Internal class to be used by SVGRenderer. Stores data for a closed ordered list of piecewise B-Spline curves.
+
+    Attributes:
+        quadratic_bezier_curves_list (list): List of _QuadraticBezierPoints, a closed ordered list of piecewise B-Spline curves.
+        colour (Colour): Colour of the area in RGBA format. Fills the interior of the enclosed area.
+        scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+    """
+    def __init__(
+            self,
+            quadratic_bezier_curves_list: list = [],
+            colour: Colour = Colour([0,0,0,0]),
+            scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        Initialise a _PiecewiseBSplineElement object.
+
+        Args:
+            quadratic_bezier_curves_list (list): List of _QuadraticBezierPoints, a closed ordered list of piecewise B-Spline curves.
+            colour (Colour): Colour of the area in RGBA format. Fills the interior of the enclosed area.
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
+        """
+        all_bezier_points = []
+        for curve in quadratic_bezier_curves_list:
+            all_bezier_points.extend(curve.get_points_list())
+        super().__init__(all_bezier_points, scale_factor)
+        self.quadratic_bezier_curves_list = quadratic_bezier_curves_list
+        self.colour = colour
+    
+    def __str__(self) -> str:
+        """
+        Returns an SVG object string with proper formatting.
+
+        Returns:
+            str: A string in the format <path d="__" fill="rgba(__)"/>
+        """
+        first_curve = self.quadratic_bezier_curves_list[0]
+        path_tag = f'<path d="\n\tM {first_curve.p0.x * self.scale_factor} {first_curve.p0.y * self.scale_factor}\n'
+        for curve in self.quadratic_bezier_curves_list:
+            path_tag += f'\tQ {curve.p1.x * self.scale_factor} {curve.p1.y * self.scale_factor}, {curve.p2.x * self.scale_factor} {curve.p2.y * self.scale_factor}\n'
+        path_tag += f'\tZ\n" fill="rgba{self.colour}" />'
+
+        return path_tag
