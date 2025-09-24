@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from IPython.display import HTML
 from numpy.typing import NDArray
@@ -225,7 +226,42 @@ class PixelVectorGraph:
         Each vertex of degree 3 in the simplified dual graph marks a T-junction. One edge ending at each of these needs to be marked as a dead-end edge
         before applying curves to each edge.
         """
-        pass
+        for node in self.graph_nodes_list:
+            if len(node.edge_list) != 3:
+                continue
+            outward_edges = node.edge_list
+            inward_edges = [edge.opposite_edge for edge in outward_edges]
+            next_nodes = [edge.end_node for edge in outward_edges]
+
+            node_positions = [next_node.get_coordinates() - node.get_coordinates() for next_node in next_nodes]
+            node_positions = [Vector2D(p.x, -p.y) for p in node_positions]
+            node_angles = []
+            for position in node_positions:
+                angle = math.pi / 2
+                if position.x == 0:
+                    if position.y < 0:
+                        angle = 3 * math.pi / 2
+                else:
+                    angle = math.atan(position.y / position.x)
+                    if position.x < 0:
+                        if position.y < 0:
+                            angle = math.pi + angle
+                        else:
+                            angle = math.pi + angle
+                while angle < 0:
+                    angle += 2 * math.pi
+                node_angles.append(angle)
+            
+            angle_01 = min(abs(node_angles[0] - node_angles[1]), 2*math.pi - abs(node_angles[0] - node_angles[1]))
+            angle_12 = min(abs(node_angles[1] - node_angles[2]), 2*math.pi - abs(node_angles[1] - node_angles[2]))
+            angle_20 = min(abs(node_angles[2] - node_angles[0]), 2*math.pi - abs(node_angles[2] - node_angles[0]))
+
+            if max(angle_01, angle_12, angle_20) == angle_01:
+                inward_edges[2].is_dead_end_edge = True
+            if max(angle_01, angle_12, angle_20) == angle_12:
+                inward_edges[0].is_dead_end_edge = True
+            if max(angle_01, angle_12, angle_20) == angle_20:
+                inward_edges[1].is_dead_end_edge = True
 
 # PRIVATE
 

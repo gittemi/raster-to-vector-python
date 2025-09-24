@@ -44,6 +44,14 @@ class Vector2D:
         if not isinstance(other, Vector2D):
             return NotImplemented
         return Vector2D(self.x + other.x, self.y + other.y)
+    
+    def __sub__(self, other):
+        """
+        Defines subtraction between 2 Vector2D objects.
+        """
+        if not isinstance(other, Vector2D):
+            return NotImplemented
+        return Vector2D(self.x - other.x, self.y - other.y)
 
     def __mul__(self, other):
         """
