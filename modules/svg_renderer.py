@@ -388,27 +388,50 @@ class _PolygonElement(_SVGElement):
             points_string += str(point.x*self.scale_factor) + ',' + str(point.y*self.scale_factor) + ' '
         return f'<polygon points="{points_string}" fill="rgba{self.colour}" />'
 
-class _QuadraticBezierPoints:
+class _QuadraticBezierCurveElement(_SVGElement):
     """
-    Internal class to be used by _PiecewiseBSplineElement. Contains the 3 points for one quadratic Bezier curve.
+    Internal class to be used by SVGRenderer and _PiecewiseBSplineElement. Contains the 3 points for one quadratic Bezier curve.
 
     Attributes:
         p0 (Vector2D): 1st point of the quadratic Bezier curve.
         p1 (Vector2D): 2nd point of the quadratic Bezier curve.
         p2 (Vector2D): 3rd point of the quadratic Bezier curve.
+        colour (Colour): Colour of the line in RGBA format.
+        width (int): Width of the rendered Bezier curve.
+        scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
     """
-    def __init__(self, p0: Vector2D, p1: Vector2D, p2: Vector2D):
+    def __init__(
+            self,
+            p0: Vector2D,
+            p1: Vector2D,
+            p2: Vector2D,
+            colour: int = Colour([0,0,0,0]),
+            width: int = DEFAULT_LINE_WIDTH,
+            scale_factor: int = DEFAULT_SCALE_FACTOR):
         """
-        Initialise a _QuadraticBezierPoints object.
+        Initialise a _QuadraticBezierCurveElement object.
 
         Args:
             p0 (Vector2D): 1st point of the quadratic Bezier curve.
             p1 (Vector2D): 2nd point of the quadratic Bezier curve.
             p2 (Vector2D): 3rd point of the quadratic Bezier curve.
+            colour (Colour): Colour of the line in RGBA format.
+            width (int): Width of the rendered Bezier curve. Defaults to DEFAULT_LINE_WIDTH
+            scale_factor (int): The entire element is scaled by the scale factor with the origin at the center. Defaults to DEFAULT_SCALE_FACTOR
         """
+        super().__init__([p0, p1, p2], scale_factor)
         self.p0: Vector2D = p0
         self.p1: Vector2D = p1
         self.p2: Vector2D = p2
+        self.colour: Colour = colour
+        self.width: int = width
+        self.scale_factor: int = scale_factor
+
+    def __str__(self) -> str:
+        x0, y0 = self.p0 * self.scale_factor
+        x1, y1 = self.p1 * self.scale_factor
+        x2, y2 = self.p2 * self.scale_factor
+        return f'<path d="M {x0},{y0} Q {x1},{y1} {x2},{y2}" fill="none" stroke="rgba{self.colour}" stroke-width="{self.width}" />'
     
     def get_points_list(self) -> list:
         """
@@ -424,7 +447,7 @@ class _PiecewiseBSplineElement(_SVGElement):
     Internal class to be used by SVGRenderer. Stores data for a closed ordered list of piecewise B-Spline curves.
 
     Attributes:
-        quadratic_bezier_curves_list (list): List of _QuadraticBezierPoints, a closed ordered list of piecewise B-Spline curves.
+        quadratic_bezier_curves_list (list): List of _QuadraticBezierCurveElement, a closed ordered list of piecewise B-Spline curves.
         colour (Colour): Colour of the area in RGBA format. Fills the interior of the enclosed area.
         scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
     """
@@ -437,7 +460,7 @@ class _PiecewiseBSplineElement(_SVGElement):
         Initialise a _PiecewiseBSplineElement object.
 
         Args:
-            quadratic_bezier_curves_list (list): List of _QuadraticBezierPoints, a closed ordered list of piecewise B-Spline curves.
+            quadratic_bezier_curves_list (list): List of _QuadraticBezierCurveElement, a closed ordered list of piecewise B-Spline curves.
             colour (Colour): Colour of the area in RGBA format. Fills the interior of the enclosed area.
             scale_factor (int): The entire element is scaled by the scale factor with the origin at the center.
         """
