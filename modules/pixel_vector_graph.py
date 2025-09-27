@@ -106,6 +106,30 @@ class _PixelVectorGraphEdge:
         """
         self.opposite_edge = edge
         edge.opposite_edge = self
+    
+    def get_centre(self) -> Vector2D:
+        """
+        Return the centre point of the edge. The center is defined as the midpoint between the start and end node.
+
+        Returns:
+            Vector2D: The center point of the edge.
+        """
+        return (self.start_node.get_coordinates() + self.end_node.get_coordinates()) / 2
+    
+    def get_b_spline_points(self) -> tuple[Vector2D, Vector2D, Vector2D]:
+        """
+        Returns 3 points for rendering the quadratic Bezier curve representation of this edge
+
+        Returns:
+            tuple[Vector2D, Vector2D, Vector2D]: Points of the form (p0, p1, p2) denoting the quadratic Bezier curve
+        """
+        p0: Vector2D = self.get_centre()
+        p1: Vector2D = self.end_node.get_coordinates()
+        p2: Vector2D = self.next_edge.get_centre()
+
+        # TODO (P0): If the edge is a dead-end edge, the curve should be a straight line.
+
+        return (p0, p1, p2)
 
 class PixelVectorGraph:
     """
@@ -151,7 +175,14 @@ class PixelVectorGraph:
 
 # PUBLIC
     
-    def render(self, highlight_pixel_graph_edges: bool = False, highlight_t_junction_edges = False, svg_scale_factor: int = None) -> object:
+    def render(
+            self,
+            show_smoothened_image = False,
+            highlight_pixel_graph_edges: bool = False,
+            highlight_t_junction_edges = False,
+            highlight_bezier_curves = False,
+            svg_scale_factor: int = None
+            ) -> object:
         """
         Method to render the data stored in this object.
 
@@ -159,6 +190,7 @@ class PixelVectorGraph:
             highlight_pixel_graph_edges (bool): If True, the edges will be visibly highlighted when rendering the SVG.
             highlight_t_junction_edges (bool): If True, the dead-end edges at T-junctions will be visibly highlighted when rendering the SVG.
             svg_scale_factor (int): All SVG elements are scaled by the scale factor with the origin at the center.
+            TODO (P0): Descriptions for newly added parameters
 
         Returns:
             object: HTML object containing the rendered data.
@@ -168,12 +200,19 @@ class PixelVectorGraph:
         if svg_scale_factor is not None:
             self.svg_renderer.scale_factor = svg_scale_factor
 
-        self._set_dual_graph_svg_elements()
+        if show_smoothened_image:
+            self._set_piecewise_b_spline_area_elements()
+        else:
+            self._set_dual_graph_svg_elements()
+
         if highlight_pixel_graph_edges:
             self._set_dual_graph_edge_svg_elements_for_debugging()
     
         if highlight_t_junction_edges:
             self._set_dual_graph_edge_t_junction_svg_elements()
+
+        if highlight_bezier_curves:
+            self._set_piecewise_b_spline_curve_elements()
 
         return HTML(self.svg_renderer.get_html_code_for_svg())
 
@@ -515,6 +554,34 @@ class PixelVectorGraph:
         self.number_of_nodes = len(self.graph_nodes_list)
         for i in range(self.number_of_nodes):
             self.graph_nodes_list[i].id = i
+
+    def _set_piecewise_b_spline_area_elements(self):
+        """
+        Method to set SVG elements in svg_renderer. Sets piecewise B-spline bounded areas for each enclosed area in the dual graph.
+        """
+        visited = np.zeros(self.number_of_edges, dtype=bool)
+        for edge in self.graph_edges_list:
+            if not visited[edge.id]:
+                # Visit the edges. If they are in a loop, add the piecewise b-spline area in dual_graph_elements
+                start_edge = edge
+                bezier_curves = []
+                colour = edge.pixel.colour
+                while edge is not None:
+                    visited[edge.id] = True
+                    # point: Vector2D = edge.start_node.get_coordinates()
+                    bezier_curves.append(edge.get_b_spline_points())
+                    edge = edge.next_edge
+                    if edge is not None and edge.id == start_edge.id:
+                        self.svg_renderer.add_piecewise_b_spline_area(bezier_curves, colour)
+                        break
+
+    def _set_piecewise_b_spline_curve_elements(self):
+        """
+        Method to set SVG elements in svg_renderer. Set quadratic bezier curves for each edge in the dual graph.
+        """
+        for edge in self.graph_edges_list:
+            bezier_curve = edge.get_b_spline_points()
+            self.svg_renderer.add_quadratic_bezier_curve(bezier_curve[0], bezier_curve[1], bezier_curve[2], Colour([0, 255, 0, 255]))
 
     def _set_dual_graph_svg_elements(self):
         """

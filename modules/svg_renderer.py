@@ -102,6 +102,28 @@ class SVGRenderer:
         """
         new_element = _PolygonElement(points, colour, scale_factor)
         self.svg_elements.append(new_element)
+    
+    def add_quadratic_bezier_curve(
+            self,
+            p0: Vector2D,
+            p1: Vector2D,
+            p2: Vector2D,
+            colour: Colour = Colour([0,0,0,0]),
+            width: int = DEFAULT_LINE_WIDTH,
+            scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        TODO (P0): Add Description
+        """
+        new_element = _QuadraticBezierCurveElement(p0, p1, p2, colour, width, scale_factor)
+        self.svg_elements.append(new_element)
+
+    def add_piecewise_b_spline_area(self, bezier_curves: list = [], colour = Colour([0,0,0,0]), scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        TODO (P0): Add Description
+        """
+        bezier_curves_elements_list = [_QuadraticBezierCurveElement(p[0], p[1], p[2]) for p in bezier_curves]
+        new_element = _PiecewiseBSplineElement(bezier_curves_elements_list, colour, scale_factor)
+        self.svg_elements.append(new_element)
 
     '''Getters'''
 

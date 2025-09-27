@@ -37,7 +37,7 @@ class Vector2D:
         """
         return np.array([self.x, self.y], dtype = np.uint64)
 
-    def __add__(self, other):
+    def __add__(self, other) -> 'Vector2D':
         """
         Defines addition between 2 Vector2D objects.
         """
@@ -45,7 +45,7 @@ class Vector2D:
             return NotImplemented
         return Vector2D(self.x + other.x, self.y + other.y)
     
-    def __sub__(self, other):
+    def __sub__(self, other) -> 'Vector2D':
         """
         Defines subtraction between 2 Vector2D objects.
         """
@@ -53,7 +53,7 @@ class Vector2D:
             return NotImplemented
         return Vector2D(self.x - other.x, self.y - other.y)
 
-    def __mul__(self, other):
+    def __mul__(self, other) -> 'Vector2D':
         """
         Defines scalar multiplication between a Vector2D object and a scalar (int, float).
         """
@@ -61,11 +61,19 @@ class Vector2D:
             return Vector2D(self.x * other, self.y * other)
         return NotImplemented
 
-    def __rmul__(self, other):
+    def __rmul__(self, other) -> 'Vector2D':
         """
         Defines scalar multiplication between a scalar (int, float) and a Vector2D object.
         """
         return self.__mul__(other)
+
+    def __truediv__(self, scalar: float) -> 'Vector2D':
+        """
+        Defines division of this vector by a scalar.
+        """
+        if scalar == 0:
+            raise ZeroDivisionError("Cannot divide by zero.")
+        return Vector2D(self.x / scalar, self.y / scalar)
 
     def __getitem__(self, index):
         """
