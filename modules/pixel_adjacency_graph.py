@@ -260,7 +260,7 @@ class PixelAdjacencyGraph:
             matrix = self.adjacency_matrix
 
         count = 0
-        visited = np.zeros(matrix, dtype=bool)
+        visited = np.zeros(matrix.shape[:2], dtype=bool)
         for row, col in np.ndindex(matrix.shape[:2]):
             if visited[row, col]:
                 continue
@@ -268,7 +268,7 @@ class PixelAdjacencyGraph:
             to_visit = [[row, col]]
             visited[row, col] = True
             while len(to_visit) > 0:
-                x, y = visited.pop()
+                x, y = to_visit.pop()
                 for i in self._get_edge_indices(x, y):
                     next_node = self.get_neighbouring_node(x, y, i)
                     if matrix[x, y, i] and not visited[next_node]:
