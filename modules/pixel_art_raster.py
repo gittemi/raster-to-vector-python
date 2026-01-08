@@ -2,7 +2,6 @@ import cv2
 import math
 import numpy as np
 import tkinter as tk
-import logging
 from numpy.typing import NDArray
 from tkinter import filedialog
 from IPython.display import HTML
@@ -10,6 +9,7 @@ from IPython.display import HTML
 from svg_renderer import SVGRenderer
 from vector_2d import Vector2D
 from colour import Colour
+from verbose_logger import VerboseLogger
 
 # TODO (P2): Implement verbosity for proper debugging
 
@@ -39,23 +39,7 @@ class _Pixel:
         Returns:
             bool: True if both IDs are non-negative and equal, False otherwise.
         """
-        return self.id >= 0 and self.id == other.id
-
-# TODO (P1): Refactor this class to a more appropriate place to ensure code is readable.
-class ColorFormatter(logging.Formatter):
-    COLORS = {
-        logging.DEBUG: "\033[36m",    # Cyan
-        logging.INFO: "\033[32m",     # Green
-        logging.WARNING: "\033[33m",  # Yellow
-        logging.ERROR: "\033[31m",    # Red
-        logging.CRITICAL: "\033[1;31m"
-    }
-    RESET = "\033[0m"
-
-    def format(self, record):
-        color = self.COLORS.get(record.levelno, "")
-        message = super().format(record)
-        return f"{color}{message}{self.RESET}"
+        return self.id >= 0 and self.id == other.idf
 
 class PixelArtRaster:
     """
@@ -67,9 +51,10 @@ class PixelArtRaster:
         svg_scale_factor (int): Specify how big each square of the raster should be when rendering.
         pixel_grid (NDArray[_Pixel]): A 2D grid of _Pixel objects having shape (height, width)
         verbosity (int): Specify the verbosity level. Defaults to 0. They are defined as follows:
-            0: Warnings only
-            1: Warnings and execution info
-            2: Warnings, execution info, and debug info
+            0: Silent
+            1: Warnings
+            2: Warnings and info
+            3: Warnings, info, and debug logs
     """
     def __init__(self, 
                  input_raster: NDArray[np.uint64] = None,
@@ -85,9 +70,10 @@ class PixelArtRaster:
             reduce_input_raster (bool): If True, the input raster is reduced if it is a scaled up image.
             svg_scale_factor (int): Specify how big each square of the raster should be when rendering.
             verbosity (int): Specify the verbosity level. Defaults to 0. They are defined as follows:
-                0: Warnings only
-                1: Warnings and execution info
-                2: Warnings, execution info, and debug info
+                0: Silent
+                1: Warnings
+                2: Warnings and info
+                3: Warnings, info, and debug logs
         """
         self.pixel_count: int = 0
         self.input_raster: NDArray[np.uint64] = input_raster
@@ -97,24 +83,7 @@ class PixelArtRaster:
         self.svg_renderer: SVGRenderer = SVGRenderer(svg_scale_factor)
         
         self.verbosity: int = verbosity
-        self.logger = logging.getLogger(self.__class__.__name__)
-
-        logging_level = logging.WARNING
-        if verbosity >= 2:
-            logging_level = logging.DEBUG
-        elif verbosity == 1:
-            logging_level = logging.INFO
-
-        handler = logging.StreamHandler()
-        handler.setFormatter(ColorFormatter(
-            "%(levelname)-8s | %(name)-15s \t| %(funcName)-25s \t| %(message)s"
-        ))
-
-        logger = logging.getLogger(self.__class__.__name__)
-        logger.setLevel(logging_level)
-        logger.addHandler(handler)
-        self.logger = logger
-
+        self.logger = VerboseLogger(verbosity, self.__class__.__name__)
         self.logger.info(f'Successfully initialised a {self.__class__.__name__} object')
 
 # PUBLIC
