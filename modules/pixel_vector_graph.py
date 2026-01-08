@@ -55,6 +55,15 @@ class _PixelVectorGraphNode:
             Vector2D: Coordinates of the node based on position and offset.
         """
         return self.position + self.offset
+    
+    def get_degree(self) -> int:
+        """
+        Returns the number of edges connected to this vertex.
+
+        Returns:
+            int: Degree of the vertex.
+        """
+        return len(self.edge_list)
 
 class _PixelVectorGraphEdge:
     """
@@ -568,8 +577,24 @@ class PixelVectorGraph:
                 colour = edge.pixel.colour
                 while edge is not None:
                     visited[edge.id] = True
-                    # point: Vector2D = edge.start_node.get_coordinates()
-                    bezier_curves.append(edge.get_b_spline_points())
+                    # If the edge ends in a vertex of degree 4, no Bexier curves should be added.
+                    # Connections should be done to the vertex with straight lines.
+                    if edge.end_node.get_degree() >= 3:
+                        # TODO (P0): The logic should be applied to degree 4 vertices only and not degree 3
+                        line_segment_bezier_curve_1: tuple[Vector2D, Vector2D, Vector2D] = (
+                            edge.get_centre(),
+                            edge.get_centre(),
+                            edge.end_node.get_coordinates()
+                        )
+                        line_segment_bezier_curve_2: tuple[Vector2D, Vector2D, Vector2D] = (
+                            edge.end_node.get_coordinates(),
+                            edge.end_node.get_coordinates(),
+                            edge.next_edge.get_centre()
+                        )
+                        bezier_curves.append(line_segment_bezier_curve_1)
+                        bezier_curves.append(line_segment_bezier_curve_2)
+                    else:
+                        bezier_curves.append(edge.get_b_spline_points())
                     edge = edge.next_edge
                     if edge is not None and edge.id == start_edge.id:
                         self.svg_renderer.add_piecewise_b_spline_area(bezier_curves, colour)
