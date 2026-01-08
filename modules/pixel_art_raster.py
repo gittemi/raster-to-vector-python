@@ -11,7 +11,6 @@ from svg_renderer import SVGRenderer
 from vector_2d import Vector2D
 from colour import Colour
 
-# TODO (P1): Use Google-style Class Docstring to comment all classes
 # TODO (P2): Implement verbosity for proper debugging
 
 class _Pixel:
@@ -58,19 +57,19 @@ class ColorFormatter(logging.Formatter):
         message = super().format(record)
         return f"{color}{message}{self.RESET}"
 
-# handler = logging.StreamHandler()
-# handler.setFormatter(ColorFormatter(
-#     "%(levelname)s | %(name)s | %(funcName)s | %(message)s"
-# ))
-
 class PixelArtRaster:
     """
     Class that stores the pixel art data in a grid format that is easy to access.
 
     Attributes:
         input_raster (NDArray[uint64]): The input raster stored in the shape (height, width, 4), in RGBA format.
-        reduce_input_raster (bool): If True, 
-        # TODO (P1)
+        reduce_input_raster (bool): If True, the input raster is reduced if it is a scaled up image.
+        svg_scale_factor (int): Specify how big each square of the raster should be when rendering.
+        pixel_grid (NDArray[_Pixel]): A 2D grid of _Pixel objects having shape (height, width)
+        verbosity (int): Specify the verbosity level. Defaults to 0. They are defined as follows:
+            0: Warnings only
+            1: Warnings and execution info
+            2: Warnings, execution info, and debug info
     """
     def __init__(self, 
                  input_raster: NDArray[np.uint64] = None,
@@ -94,7 +93,7 @@ class PixelArtRaster:
         self.input_raster: NDArray[np.uint64] = input_raster
         self.reduce_input_raster: bool = reduce_input_raster
         self.pixel_grid: NDArray[_Pixel] = None
-        self.input_raster_file_path: str = None
+        self.input_raster_file_path: str = None # TODO (P1): Move this variable and its functionality to another class
         self.svg_renderer: SVGRenderer = SVGRenderer(svg_scale_factor)
         
         self.verbosity: int = verbosity
@@ -106,11 +105,6 @@ class PixelArtRaster:
         elif verbosity == 1:
             logging_level = logging.INFO
 
-        # logging.basicConfig(
-        #     level=logging_level,
-        #     format="%(levelname)s \t| %(name)s \t| %(funcName)s \t| %(message)s"
-        # )
-
         handler = logging.StreamHandler()
         handler.setFormatter(ColorFormatter(
             "%(levelname)-8s | %(name)-15s \t| %(funcName)-25s \t| %(message)s"
@@ -121,10 +115,7 @@ class PixelArtRaster:
         logger.addHandler(handler)
         self.logger = logger
 
-        self.logger.debug("Successfully initialised object")
-
-        # if svg_scale_factor is not None:
-        #     self.svg_renderer.scale_factor = svg_scale_factor
+        self.logger.info(f'Successfully initialised a {self.__class__.__name__} object')
 
 # PUBLIC
 
@@ -135,7 +126,7 @@ class PixelArtRaster:
                             prompt_user_for_input: bool = True,
                             add_padding: bool = True):
         """
-        Import an input raster image.
+        Import an input raster image and store it as a pixel grid.
         
         Args:
             input_raster (NDArray[uint64]): Input image as a NumPy array of shape (height, width, 4)
@@ -150,7 +141,7 @@ class PixelArtRaster:
                 self.logger.warning(f'No input image provided and user was not prompted for input')
                 return
             self.logger.debug('Prompting the user for an input image')
-            self.input_raster = self._select_input_raster_from_window(verbose = False)
+            self.input_raster = self._select_input_raster_from_window()
 
         if self.input_raster.ndim != 3:
             self.logger.warning(f'Expected input image to have 3 dimensions. Found {input_raster.ndim} dimensions')
@@ -169,6 +160,12 @@ class PixelArtRaster:
             self.add_padding_to_pixel_grid()
     
     def get_pixel_art_image(self):
+        """
+        Return a deep copy of the pixel art image in RGBA format.
+
+        Returns:
+            NDArray[uint64]: Pixel art image having shape (height, width, 4)
+        """
         pixel_art_image: NDArray[np.uint64] = np.zeros((self.pixel_grid.shape[0], self.pixel_grid.shape[1], 4))
         for row, col in np.ndindex(pixel_art_image.shape[:2]):
             pixel_art_image[row, col] = np.array(self.pixel_grid[row, col].colour)
@@ -176,12 +173,19 @@ class PixelArtRaster:
         return pixel_art_image
 
     def render(self):
+        """
+        Method to render the pixel art image in SVG format, as per the specified `svg_scale_factor`
+
+        Returns:
+            str: SVG code for rendering the pixel art image.
+        """
         self.svg_renderer.clear()
         self._set_svg_pixel_elements()
         self.logger.info(f'Rendering pixel grid of shape {self.pixel_grid.shape}')
         return HTML(self.svg_renderer.get_html_code_for_svg())
 
     # Export the pixel art PNG image. If no path is specified, overwrite the input raster.
+    # TODO (P2): Move the functionality of this method to another class
     def export_pixel_art_png(self, export_path: str = None):
         if export_path is None:
             export_path = self.input_raster_file_path
@@ -192,12 +196,27 @@ class PixelArtRaster:
 # PRIVATE
 
     def _create_pixel(self, colour: Colour) -> _Pixel:
+        """
+        Method to create a new pixel. This method handles ID allocation for the pixel grid.
+
+        Args:
+            colour (Colour): Colour of the pixel in RGBA format
+        
+        Returns:
+            _Pixel: The pixel object with a new ID and specified colour
+        """
         id = self.pixel_count
         self.pixel_count += 1
         new_pixel = _Pixel(id, colour)
         return new_pixel
 
     def _create_pixel_grid(self, image: NDArray[np.uint64]):
+        """
+        Create the pixel grid array for the given RGBA image
+
+        Args:
+            image (NDArray[uint64]): Input image in RGBA format
+        """
         self.logger.info(f'Creating a pixel grid of the image with _Pixel objects')
         if image is None:
             self.logger.warning('No input image found. No pixel grid is created')
@@ -209,8 +228,10 @@ class PixelArtRaster:
             self.pixel_grid[row, col] = self._create_pixel(colour)
         self.logger.info(f'Created pixel grid of size {self.pixel_grid.shape}')
 
-    # Add a 1 transparent pixel padding to the borders of the image
     def add_padding_to_pixel_grid(self):
+        """
+        Add a 1 transparent pixel padding to the borders of the image pixel grid
+        """
         self.logger.info(f'Adding padding to pixel grid')
         old_pixel_grid: NDArray[_Pixel] = self.pixel_grid
         self.pixel_grid = np.empty((old_pixel_grid.shape[0]+2, old_pixel_grid.shape[1]+2), dtype=object)
@@ -264,7 +285,13 @@ class PixelArtRaster:
         self.logger.info(f'Completed reduction of input raster')
         return pixel_art
 
-    def _select_input_raster_from_window(self, verbose: bool = True) -> NDArray[np.uint64]:
+    def _select_input_raster_from_window(self) -> NDArray[np.uint64]:
+        """
+        Method to prompt the user to select an input PNG image from their system
+
+        Returns:
+            NDArray[uint64]: The image stored as an array in RGBA format
+        """
         root = tk.Tk()
         root.withdraw()
         root.attributes("-topmost", True) 
@@ -272,8 +299,6 @@ class PixelArtRaster:
             title="Select a PNG image",
             filetypes=[("PNG files", "*.png")]
         )
-        if verbose:
-            print("Selected file:", file_path)
         
         self.input_raster_file_path = file_path
 
@@ -281,7 +306,10 @@ class PixelArtRaster:
         input_raster = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
         return input_raster
     
-    def _set_svg_pixel_elements(self, pixel_size: int = 20):
+    def _set_svg_pixel_elements(self):
+        """
+        For each pixel in the pixel grid, create an SVG element that can be rendered by the SVG renderer
+        """
         # TODO (P4): Validate that pixel_art has the correct shape and data type. Throw exception if not 
         for row, col in np.ndindex(self.pixel_grid.shape[:2]):
             pixel_colour: Colour = self.pixel_grid[row, col].colour
