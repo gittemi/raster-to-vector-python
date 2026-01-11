@@ -125,6 +125,7 @@ class PixelArtRaster:
 
         if self.reduce_input_raster:
             self.logger.debug(f'Reduction of input image requested. Executing image reduction method')
+            self.input_raster = self._remove_all_padding_from_image()
             self.input_raster = self._reduce_input_raster()
         self._create_pixel_grid(self.input_raster)
 
@@ -222,6 +223,45 @@ class PixelArtRaster:
             self.pixel_grid[self.pixel_grid.shape[0]-1][col] = self._create_pixel(transparent_colour)
         self.logger.info(f'Addition of padding is complete. Updated grid shape is {self.pixel_grid.shape}')
 
+    def _remove_all_padding_from_image(self) -> NDArray[np.uint64]:
+
+        self.logger.info(f'Removing all transparent padding from the input raster. (Shape: {self.input_raster.shape})')
+
+        rows_from_top = 0
+        rows_from_bottom = 0
+        cols_from_left = 0
+        cols_from_right = 0
+
+        for row in range(self.input_raster.shape[0]):
+            if not all([pixel[3] == 0 for pixel in self.input_raster[row]]):
+                break
+            rows_from_top += 1
+        
+        for row in reversed(range(self.input_raster.shape[0])):
+            if not all([pixel[3] == 0 for pixel in self.input_raster[row]]):
+                break
+            rows_from_bottom += 1
+        
+        for col in range(self.input_raster.shape[1]):
+            if not all([pixel[3] == 0 for pixel in self.input_raster[:,col]]):
+                break
+            cols_from_left += 1
+
+        for col in reversed(range(self.input_raster.shape[1])):
+            if not all([pixel[3] == 0 for pixel in self.input_raster[:,col]]):
+                break
+            cols_from_right += 1
+
+        self.logger.debug(f'Rows removed from top: {rows_from_top}')
+        self.logger.debug(f'Rows removed from bottom: {rows_from_bottom}')
+        self.logger.debug(f'Cols removed from left: {cols_from_left}')
+        self.logger.debug(f'Cols removed from right: {cols_from_right}')
+
+        # new_raster = np.zeros((self.input_raster.shape[0] - rows_from_top, rows_from_bottom, self.input_raster.shape[1] - cols_from_left - cols_from_right, 4), dtype=np.uint8)
+        new_raster = self.input_raster[rows_from_top:-rows_from_bottom, cols_from_left:-cols_from_right]
+        return new_raster
+
+
     # Input raster might be a big image where each pixel from the pixel art might take up multiple pixels in the raster.
     # In these cases, we want to reduce the input raster.
     # TODO (P2): There should be a separate class for this functionality. reduce_input_raster should not be a functionality of this class.
@@ -234,16 +274,21 @@ class PixelArtRaster:
         pixel_size = 0
 
         for row in range(self.input_raster.shape[0]):
+            row_pixel_size = 0
             curr_pixel_size = 1
+            log_list = []
             curr_colour = self.input_raster[row,0]
             for col in range(1, self.input_raster.shape[1]):
                 pixel_color = self.input_raster[row,col]
                 if (pixel_color == curr_colour).all():
                     curr_pixel_size += 1
                 else:
-                    pixel_size = math.gcd(curr_pixel_size, pixel_size)
+                    row_pixel_size = math.gcd(curr_pixel_size, row_pixel_size)
+                    log_list.append(curr_pixel_size)
                     curr_pixel_size = 1
                     curr_colour = pixel_color
+            pixel_size = math.gcd(row_pixel_size, pixel_size)
+            # self.logger.debug(f'Pixel size at row {row} is: {row_pixel_size}. GCD so far: {pixel_size}. {log_list}')
         # TODO (P2): Do the same vertically as well
         # In most cases, doing horizontally is enough. Checking vertically would help with robustness.
 
