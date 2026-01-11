@@ -132,7 +132,9 @@ class SVGRenderer:
         """
         TODO (P0): Add Description
         """
-        path_area_elements_list = [[_QuadraticBezierCurveElement(p[0], p[1], p[2]) for p in bezier_curves] for bezier_curves in bezier_curves_area_list]
+        path_area_elements_list = [
+            _PiecewiseBSplineElement([_QuadraticBezierCurveElement(p[0], p[1], p[2]) for p in bezier_curves], colour, 1)
+                for bezier_curves in bezier_curves_area_list]
         new_element = _PathAreaElement(path_area_elements_list, colour, scale_factor)
         self.svg_elements.append(new_element)
 
@@ -486,7 +488,7 @@ class _PiecewiseBSplineElement(_SVGElement):
     """
     def __init__(
             self,
-            quadratic_bezier_curves_list: list = [],
+            quadratic_bezier_curves_list: list[_QuadraticBezierCurveElement] = [],
             colour: Colour = Colour([0,0,0,0]),
             scale_factor: int = DEFAULT_SCALE_FACTOR):
         """
@@ -517,14 +519,17 @@ class _PiecewiseBSplineElement(_SVGElement):
 
         return path_tag
     
-    def get_path_data(self) -> str:
+    def get_path_data(self, scale_factor: int = None) -> str:
         """
         TODO (P0): Docstring
         """
+        if scale_factor is None:
+            scale_factor = self.scale_factor
+
         first_curve = self.quadratic_bezier_curves_list[0]
-        path_data = f'M {first_curve.p0.x * self.scale_factor} {first_curve.p0.y * self.scale_factor}\n'
+        path_data = f'M {first_curve.p0.x * scale_factor} {first_curve.p0.y * scale_factor}\n'
         for curve in self.quadratic_bezier_curves_list:
-            path_data += f'\tQ {curve.p1.x * self.scale_factor} {curve.p1.y * self.scale_factor}, {curve.p2.x * self.scale_factor} {curve.p2.y * self.scale_factor}\n'
+            path_data += f'\tQ {curve.p1.x * scale_factor} {curve.p1.y * scale_factor}, {curve.p2.x * scale_factor} {curve.p2.y * scale_factor}\n'
         path_data += f'\tZ\n'
         return path_data
 
@@ -539,16 +544,17 @@ class _PathAreaElement(_SVGElement):
         """
         TODO (P0): Docstring
         """
-        all_bound_points: list[Vector2D] = [path.bounds for path in paths_list]
-        super.__init__(all_bound_points, scale_factor)
+        all_bound_points: list[Vector2D] = [path.bounds / path.scale_factor for path in paths_list]
+        super().__init__(all_bound_points, scale_factor)
         self.paths_list: list[_SVGElement] = paths_list
+        self.colour = colour
         self.scale_factor: int = scale_factor
     
     def get_path_data(self) -> str:
         """
         TODO (P0): Docstring
         """
-        return '\n'.join([path.get_path_data() for path in self.paths_list])
+        return '\n'.join([path.get_path_data(self.scale_factor) for path in self.paths_list])
     
     def __str__(self) -> str:
         """
@@ -556,3 +562,5 @@ class _PathAreaElement(_SVGElement):
         """
         path_data = self.get_path_data()
         path_tag = f'<path d="{path_data}" fill="rgba{self.colour}" fill-rule="evenodd"/>'
+
+        return path_tag

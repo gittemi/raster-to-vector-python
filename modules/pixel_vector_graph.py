@@ -596,6 +596,14 @@ class PixelVectorGraph:
         """
         Method to set SVG elements in svg_renderer. Sets piecewise B-spline bounded areas for each enclosed area in the dual graph.
         """
+        # for each connected component, we want a list of enclosed areas that defines the surface that the component covers.
+        list_of_areas_for_component: NDArray[list] = np.empty(self.adjacency_graph.num_connected_components(), dtype=object)
+        colour_for_component: NDArray[Colour] = np.empty(self.adjacency_graph.num_connected_components(), dtype=object)
+
+        for component_id in range(self.adjacency_graph.num_connected_components()):
+            list_of_areas_for_component[component_id] = []
+            # colour_for_component
+
         visited = np.zeros(self.number_of_edges, dtype=bool)
         for edge in self.graph_edges_list:
             if not visited[edge.id]:
@@ -631,8 +639,15 @@ class PixelVectorGraph:
                         bezier_curves.append(edge.get_b_spline_points())
                     edge = edge.next_edge
                     if edge is not None and edge.id == start_edge.id:
-                        self.svg_renderer.add_piecewise_b_spline_area(bezier_curves, colour)
+                        component_id = start_edge.pixel.connected_component_id
+                        list_of_areas_for_component[component_id].append(bezier_curves)
+                        colour_for_component[component_id] = colour
                         break
+        
+        for component_id in range(self.adjacency_graph.num_connected_components()):
+            self.svg_renderer.add_piecewise_b_spline_area_with_holes(list_of_areas_for_component[component_id],
+                                                                     colour_for_component[component_id],
+                                                                     self.svg_renderer.scale_factor)
 
     def _set_piecewise_b_spline_curve_elements(self):
         """
