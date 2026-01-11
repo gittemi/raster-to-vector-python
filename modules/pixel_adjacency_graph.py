@@ -6,27 +6,70 @@ from svg_renderer import SVGRenderer
 from vector_2d import Vector2D
 from pixel_art_raster import _Pixel, PixelArtRaster
 
-# TODO (P1): Use Google-style Class Docstring to comment all classes
+# TODO (P1): Use Google-style Class Docstring to comment private methods
 # TODO (P3): Write tests for this module
 # TODO (P3): Implement 'verbose' for all methods
 
 class PixelAdjacencyGraph:
-    def __init__(self, pixel_art_raster, make_graph_planar = True):
-        self.pixel_art_raster = pixel_art_raster
+    """
+    Class to define the adjacency graph for a given PixelArtRaster object.
+
+    Attributes:
+        pixel_art_raster (PixelArtRaster): Thw pixel art raster object for which the graph needs to be constructed.
+        adjacency_graph (NDArray[bool]): Array of shape (height, width, 8) that denotes the adjacency matrix if the graph.
+
+            Each pixel is connected to upto 8 other pixels, either horizontally, vertically, or diagonally. Indices from 0 to 7 
+            represent the adjacent pixels at the top-left, top, top-right, left, right, bottom-left, bottom, bottom-right of the pixel respectively.
+
+            Eg: `adjacency_graph[30, 40, 2]` denotes whether pixel with index `[30, 40]` is connected to the pixel at its top-right, i.e., `[29, 41]`.
+
+        svg_renderer (SVGRenderer): SVG Renderer object to store and render SVG elements. Used for visualisation and testing the graph.
+    """
+    def __init__(self,
+                 pixel_art_raster: PixelArtRaster,
+                 make_graph_planar: bool = True):
+        """
+        Initialise a PixelAdjacencyGraph object.
+
+        Args:
+            pixel_art_raster (PixelArtRaster): Thw pixel art raster object for which the graph needs to be constructed.
+            make_graph_planar (bool): If true, the planar graph is constructed. Else, the graph is initialised with all adjacent edges set to True
+        """
+        self.pixel_art_raster: PixelArtRaster = pixel_art_raster
+        self.adjacency_graph = None
         self._init_adjacency_graph()
-        self.svg_renderer = SVGRenderer()
+        self.svg_renderer: SVGRenderer = SVGRenderer()
 
         if make_graph_planar:
             self._make_graph_planar()
 
 # PUBLIC    
-    def get_adjacency_matrix(self, deep_copy = True):
+    def get_adjacency_matrix(self, deep_copy: bool = True) -> NDArray[bool]:
+        """
+        Returns a copy of the adjacency matrix.
+
+        Args:
+            deep_copy (bool): If True, creates a copy of the adjacency matrix and returns it.
+                If False, returns a reference to the object's adjacency matrix (Not recommended).
+        """
         if deep_copy:
             return np.array(self.adjacency_matrix)
         return self.adjacency_matrix
 
-    # Symmetrically sets the specified edges for both nodes
-    def set_edge(self, row, col, edge_index, value=True, matrix = None):
+    def set_edge(self, row: int, col: int, edge_index: int, value: bool = True, matrix: NDArray[bool] = None):
+        """
+        Sets or resets the connectivity of an edge.
+
+        Since the graph is undirected, the method sets the edge at both directions to the sae value. For this reason, it is recommended to
+        use this method for modifying the graph and not modifying the adjacency matrix directly.
+
+        Args:
+            row (int): Row index of the pixel, from 0 to height-1 (inclusive).
+            col (int): Column index of the poxel, from 0 to width-1 (inclusive).
+            edge_index (int): Index from 0 to 7 (inclusive) denoting the particular edge incident to the specified pixel.
+            value (bool): Value of the edge to be set. Defaults to True.
+            matrix (NDArray[bool]): Specifies the adjacency matrix to modify. By default modifies the `adjacency_graph` array of this object.
+        """
         if matrix is None:
             matrix = self.adjacency_matrix
 
@@ -35,9 +78,14 @@ class PixelAdjacencyGraph:
             = matrix[opposite_row, opposite_col, 7-edge_index] \
             = value
 
-    # Returns a 2D boolean matrix corresponding to the nodes.
-    # Any nodes having non-planar edges are marked False.
-    def get_non_planar_nodes(self):
+    def get_non_planar_nodes(self) -> NDArray[bool]:
+        """
+        Debugging method to analyse the planarity of the adjacency graph.
+
+        Returns:
+            NDArray[bool]: Array of shape (height, width) corresponding to the adjacency graph nodes. A node is marked True
+            if and only if any of its incident edges is nonplaner.
+        """
         is_node_planar = np.ones(self.adjacency_matrix.shape[:2], dtype=bool)
 
         for row in range(self.adjacency_matrix.shape[0]-1):
@@ -53,7 +101,29 @@ class PixelAdjacencyGraph:
         return is_node_planar
     
     # Given a node edge index, return the neighbouring node
-    def get_neighbouring_node(self, row, col, edge_index):
+    def get_neighbouring_node(self, row: int, col: int, edge_index: int) -> tuple[int, int]:
+        """
+        Given the indices of a pixel and the edge index, returns the indices of the neighbouring node.
+
+        Indices from 0 to 7 represent the adjacent pixels at the top-left, top, top-right, left, right, bottom-left, bottom,\
+        bottom-right of the pixel respectively.
+
+        This can be visually interpreted as follows, where `*` denotes the current pixel:
+
+        ```
+        0 1 2
+        3 * 4
+        5 6 7
+        ```
+
+        Args:
+            row (int): Row index of the pixel, from 0 to height-1 (inclusive).
+            col (int): Column index of the pixel, from 0 to width-1 (inclusive).
+            edge_index (int): Index from 0 to 7 (inclusive) denoting the particular edge incident to the specified pixel.
+
+        Returns:
+            int, int: row and column indices of the neighbouring node.
+        """
         row_inc = [-1, -1, -1,  0,  0,  1,  1,  1]
         col_inc = [-1,  0,  1, -1,  1, -1,  0,  1]
 
@@ -63,6 +133,12 @@ class PixelAdjacencyGraph:
         return next_row, next_col
     
     def get_connected_component_ids(self) -> NDArray[int]:
+        """
+        Debug method to check for connected components.
+
+        Returns:
+            NDArray[int]: Array of shape (height, width) where each element indicates the connected component ID of the corresponding function.
+        """
         connected_component_ids: NDArray[int] = np.full(self.pixel_art_raster.pixel_grid.shape[:2], -1, dtype=int)
 
         for row, col in np.ndindex(self.pixel_art_raster.pixel_grid.shape[:2]):
@@ -71,7 +147,17 @@ class PixelAdjacencyGraph:
         
         return connected_component_ids
     
-    def render(self, render_pixel_art = True, render_adjacency_graph = True, svg_scale_factor: int = None):
+    def render(self, render_pixel_art: bool = True, svg_scale_factor: int = None) -> object:
+        """
+        Method to render the adjacency graph. Intended for debugging purposes.
+
+        Args:
+            render_pixel_art (bool): If True, the pixel art image will be rendered behind the graph for better visualization.
+            svg_scale_factor (int): All SVG elements are scaled by the scale factor with the origin at the center.
+
+        Returns:
+            object: HTML object for rendering the SVG image.
+        """
         self.svg_renderer.clear()
         if svg_scale_factor is not None:
             self.svg_renderer.scale_factor = svg_scale_factor
@@ -84,8 +170,12 @@ class PixelAdjacencyGraph:
         return HTML(self.svg_renderer.get_html_code_for_svg())
     
 # PRIVATE
-    # create adjacency matrix for given pixel art
     def  _init_adjacency_graph(self):
+        """
+        Initialise `adjacency_graph` to a boolean array of the same shape as the image.
+
+        All edges that connect to other pixels are set to True. Edges that do not connect to any pixels are set to False.
+        """
         pixel_art_image = self.pixel_art_raster.get_pixel_art_image()
         self.adjacency_matrix = np.ones((pixel_art_image.shape[0], pixel_art_image.shape[1], 8), dtype=bool)
 
