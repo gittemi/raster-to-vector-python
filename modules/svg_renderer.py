@@ -125,6 +125,17 @@ class SVGRenderer:
         new_element = _PiecewiseBSplineElement(bezier_curves_elements_list, colour, scale_factor)
         self.svg_elements.append(new_element)
 
+    def add_piecewise_b_spline_area_with_holes(self,
+                                                    bezier_curves_area_list: list[list[float, float, float]] = [],
+                                                    colour = Colour([0,0,0,0]),
+                                                    scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        TODO (P0): Add Description
+        """
+        path_area_elements_list = [[_QuadraticBezierCurveElement(p[0], p[1], p[2]) for p in bezier_curves] for bezier_curves in bezier_curves_area_list]
+        new_element = _PathAreaElement(path_area_elements_list, colour, scale_factor)
+        self.svg_elements.append(new_element)
+
     '''Getters'''
 
     # TODO (P2): It is a better practice to implement __add__() to fit the use case of this method.
@@ -500,10 +511,48 @@ class _PiecewiseBSplineElement(_SVGElement):
         Returns:
             str: A string in the format <path d="__" fill="rgba(__)"/>
         """
-        first_curve = self.quadratic_bezier_curves_list[0]
-        path_tag = f'<path d="\n\tM {first_curve.p0.x * self.scale_factor} {first_curve.p0.y * self.scale_factor}\n'
-        for curve in self.quadratic_bezier_curves_list:
-            path_tag += f'\tQ {curve.p1.x * self.scale_factor} {curve.p1.y * self.scale_factor}, {curve.p2.x * self.scale_factor} {curve.p2.y * self.scale_factor}\n'
-        path_tag += f'\tZ\n" fill="rgba{self.colour}" />'
+        # first_curve = self.quadratic_bezier_curves_list[0]
+        path_data = self.get_path_data()
+        path_tag = f'<path d="{path_data}" fill="rgba{self.colour}" />'
 
         return path_tag
+    
+    def get_path_data(self) -> str:
+        """
+        TODO (P0): Docstring
+        """
+        first_curve = self.quadratic_bezier_curves_list[0]
+        path_data = f'M {first_curve.p0.x * self.scale_factor} {first_curve.p0.y * self.scale_factor}\n'
+        for curve in self.quadratic_bezier_curves_list:
+            path_data += f'\tQ {curve.p1.x * self.scale_factor} {curve.p1.y * self.scale_factor}, {curve.p2.x * self.scale_factor} {curve.p2.y * self.scale_factor}\n'
+        path_data += f'\tZ\n'
+        return path_data
+
+class _PathAreaElement(_SVGElement):
+    """
+    TODO (P0): Docstring
+    """
+    def __init__(self,
+                 paths_list: list[_SVGElement] = [],
+                 colour: Colour = Colour([0,0,0,0]),
+                 scale_factor: int = DEFAULT_SCALE_FACTOR):
+        """
+        TODO (P0): Docstring
+        """
+        all_bound_points: list[Vector2D] = [path.bounds for path in paths_list]
+        super.__init__(all_bound_points, scale_factor)
+        self.paths_list: list[_SVGElement] = paths_list
+        self.scale_factor: int = scale_factor
+    
+    def get_path_data(self) -> str:
+        """
+        TODO (P0): Docstring
+        """
+        return '\n'.join([path.get_path_data() for path in self.paths_list])
+    
+    def __str__(self) -> str:
+        """
+        TODO (P0): Docstring
+        """
+        path_data = self.get_path_data()
+        path_tag = f'<path d="{path_data}" fill="rgba{self.colour}" fill-rule="evenodd"/>'
