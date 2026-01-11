@@ -86,3 +86,8 @@ class Vector2D:
         else:
             raise IndexError("Index must be either 0 (for x) or 1 (for y)")
         
+    def __float__(self) -> float:
+        """
+        Type casting to float returns the euclidean distance of the point from the origin.
+        """
+        return (self.x ** 2 + self.y ** 2) ** 0.5

@@ -564,6 +564,34 @@ class PixelVectorGraph:
         for i in range(self.number_of_nodes):
             self.graph_nodes_list[i].id = i
 
+    def _add_t_junction_filler_svg_elements(self, dead_end_edge: _PixelVectorGraphEdge):
+        t_junction_edge_1: _PixelVectorGraphEdge = dead_end_edge.next_edge
+        t_junction_edge_2: _PixelVectorGraphEdge = dead_end_edge.next_edge.opposite_edge.next_edge
+
+        intersection_point: Vector2D = self._get_line_intersection_point(
+            p1 = dead_end_edge.get_centre(),
+            p2 = dead_end_edge.end_node.get_coordinates(),
+            q1 = t_junction_edge_1.get_centre(),
+            q2 = t_junction_edge_2.get_centre()
+        )
+
+        triangle_common_point = intersection_point
+        if float(intersection_point - dead_end_edge.get_centre()) < float(dead_end_edge.end_node.get_coordinates() - dead_end_edge.get_centre()):
+            triangle_common_point = dead_end_edge.end_node.get_coordinates()
+
+        self.svg_renderer.add_polygon([
+            triangle_common_point,
+            t_junction_edge_1.get_centre(),
+            dead_end_edge.get_centre()
+        ],
+        dead_end_edge.pixel.colour)
+        self.svg_renderer.add_polygon([
+            triangle_common_point,
+            t_junction_edge_2.get_centre(),
+            dead_end_edge.get_centre()
+        ],
+        dead_end_edge.opposite_edge.pixel.colour)
+
     def _set_piecewise_b_spline_area_elements(self):
         """
         Method to set SVG elements in svg_renderer. Sets piecewise B-spline bounded areas for each enclosed area in the dual graph.
@@ -579,7 +607,7 @@ class PixelVectorGraph:
                     visited[edge.id] = True
                     # If the edge ends in a vertex of degree 4, no Bexier curves should be added.
                     # Connections should be done to the vertex with straight lines.
-                    if edge.end_node.get_degree() >= 3:
+                    if edge.end_node.get_degree() >= 4:
                         # TODO (P0): The logic should be applied to degree 4 vertices only and not degree 3
                         line_segment_bezier_curve_1: tuple[Vector2D, Vector2D, Vector2D] = (
                             edge.get_centre(),
@@ -594,6 +622,12 @@ class PixelVectorGraph:
                         bezier_curves.append(line_segment_bezier_curve_1)
                         bezier_curves.append(line_segment_bezier_curve_2)
                     else:
+                        if edge.end_node.get_degree() == 3:
+                            for outward_edge in edge.end_node.edge_list:
+                                inward_edge: _PixelVectorGraphEdge = outward_edge.opposite_edge
+                                if not inward_edge.is_dead_end_edge:
+                                    continue
+                                self._add_t_junction_filler_svg_elements(inward_edge)
                         bezier_curves.append(edge.get_b_spline_points())
                     edge = edge.next_edge
                     if edge is not None and edge.id == start_edge.id:
@@ -643,3 +677,36 @@ class PixelVectorGraph:
             if not edge.is_dead_end_edge:
                 continue
             self.svg_renderer.add_line(edge.start_node.get_coordinates(), edge.end_node.get_coordinates(), Colour([0, 0, 255, 255]))
+    
+    def _get_line_intersection_point(self,
+                                    p1: Vector2D,
+                                    p2: Vector2D,
+                                    q1: Vector2D,
+                                    q2: Vector2D
+                                ) -> Vector2D:
+        """
+        Given 2 lines, one line defined by points p1, p2, and the other by points q1, q2, find their intersection point.
+
+        Args:
+            p1: Point 1 of line 1.
+            p2: Point 2 of line 1.
+            q1: Point 1 of line 2.
+            q2: Point 2 of line 2.
+    
+        Returns:
+            Vector2D: The intersection point, if it exists.
+        """
+        x1, y1 = p1
+        x2, y2 = p2
+        x3, y3 = q1
+        x4, y4 = q2
+
+        denom = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4)
+
+        if denom == 0:
+            return None  # parallel or coincident
+
+        px = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) / denom
+        py = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) / denom
+
+        return Vector2D(px, py)

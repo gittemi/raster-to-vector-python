@@ -189,10 +189,10 @@ class PixelAdjacencyGraph:
         connected_components_without_sinister = \
             self.num_connected_components(adjacency_matrix_without_sinister)
 
-        if connected_components_without_dexter < connected_components_without_sinister:
+        if connected_components_without_dexter > connected_components_without_sinister:
             self.set_edge(row+1, col, 2, False)
             return True
-        if connected_components_without_dexter > connected_components_without_sinister:
+        if connected_components_without_dexter < connected_components_without_sinister:
             self.set_edge(row, col, 7, False)
             return True
         return False
