@@ -20,6 +20,8 @@ class _Pixel:
     Attributes:
         id (int): A unique identifier for the pixel. Used to check equality of two pixels. Must be non-negative.
         colour (Colour): Colour of the pixel in RGBA format.
+        connected_component_id (int): Two _Pixel objects are in the same connected component if and only if they have the same component ID.
+            A negative ID means the ID is undefined.
     """
     def __init__(self, id: int = None, colour: Colour = None):
         """
@@ -31,6 +33,7 @@ class _Pixel:
         """
         self.id: int = id
         self.colour: Colour = colour
+        self.connected_component_id: int = -1
     
     def __eq__(self, other) -> bool:
         """
@@ -81,7 +84,7 @@ class PixelArtRaster:
         self.pixel_grid: NDArray[_Pixel] = None
         self.input_raster_file_path: str = None # TODO (P1): Move this variable and its functionality to another class
         self.svg_renderer: SVGRenderer = SVGRenderer(svg_scale_factor)
-        
+
         self.verbosity: int = verbosity
         self.logger = VerboseLogger(verbosity, self.__class__.__name__)
         self.logger.info(f'Successfully initialised a {self.__class__.__name__} object')

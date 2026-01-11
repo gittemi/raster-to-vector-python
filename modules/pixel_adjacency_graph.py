@@ -1,8 +1,10 @@
 import numpy as np
 from IPython.display import HTML
+from numpy.typing import NDArray
 
 from svg_renderer import SVGRenderer
 from vector_2d import Vector2D
+from pixel_art_raster import _Pixel, PixelArtRaster
 
 # TODO (P1): Use Google-style Class Docstring to comment all classes
 # TODO (P3): Write tests for this module
@@ -60,6 +62,15 @@ class PixelAdjacencyGraph:
 
         return next_row, next_col
     
+    def get_connected_component_ids(self) -> NDArray[int]:
+        connected_component_ids: NDArray[int] = np.full(self.pixel_art_raster.pixel_grid.shape[:2], -1, dtype=int)
+
+        for row, col in np.ndindex(self.pixel_art_raster.pixel_grid.shape[:2]):
+            pixel: _Pixel = self.pixel_art_raster.pixel_grid[row, col]
+            connected_component_ids[row, col] = pixel.connected_component_id
+        
+        return connected_component_ids
+    
     def render(self, render_pixel_art = True, render_adjacency_graph = True, svg_scale_factor: int = None):
         self.svg_renderer.clear()
         if svg_scale_factor is not None:
@@ -105,6 +116,8 @@ class PixelAdjacencyGraph:
                 # TODO (P4): We may want to support colours that are similar but not exactly the same later.
                 if(self.adjacency_matrix[row, col, i] and (pixel_art_image[row, col] != pixel_art_image[next_row, next_col]).any()):
                     self.set_edge(row, col, i, False)
+    
+        self._set_connected_component_ids()
 
     # Any complete 2x2 subgraphs do not need the X edges between them
     def _prune_edges_from_complete_subgraphs(self):
@@ -315,4 +328,32 @@ class PixelAdjacencyGraph:
                             and not is_node_planar[next_row, col]:
                         rendered_colour = edge_colour_failure
                     self.svg_renderer.add_line(Vector2D(x1, y1), Vector2D(x2, y2), rendered_colour, edge_width)
-    # end
+
+    def _set_connected_component_ids(self):
+        """
+        TODO (P0): Docstring
+        """
+        num_connected_components: int = 0
+        # visited = np.zeros(self.adjacency_matrix.shape[:2], dtype = bool)
+        for row, col in np.ndindex(self.adjacency_matrix.shape[:2]):
+            pixel: _Pixel = self.pixel_art_raster.pixel_grid[row, col]
+            if pixel.connected_component_id >= 0:
+                continue
+
+            component_id: int = num_connected_components
+            num_connected_components += 1
+            pixel.connected_component_id = component_id
+            to_visit: list[tuple[int, int]] = [(row, col)]
+            while len(to_visit) > 0:
+                r1, c1 = to_visit.pop()
+                for edge_index in range(8):
+                    if not self.adjacency_matrix[r1, c1, edge_index]:
+                        continue
+                    r2, c2 = self.get_neighbouring_node(r1, c1, edge_index)
+                    if r2 < 0 or r2 >= self.pixel_art_raster.pixel_grid.shape[0] or c2 < 0 or c2 >= self.pixel_art_raster.pixel_grid.shape[1]:
+                        continue
+                    pixel2: _Pixel = self.pixel_art_raster.pixel_grid[r2, c2]
+                    if pixel2.connected_component_id >= 0:
+                        continue
+                    pixel2.connected_component_id = component_id
+                    to_visit.append((r2, c2))
