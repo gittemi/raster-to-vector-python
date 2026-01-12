@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import random
 from IPython.display import HTML
 from numpy.typing import NDArray
 
@@ -18,6 +19,7 @@ class _PixelVectorGraphNode:
         position (Vector2D): Position of the node in (x,y) coordinates. Defaults to origin (0,0)
         offset (Vector2D): Applies an offset to the node's position in (x,y) coordinates. Defaults to (0,0)
         edge_list (_PixelVectorGraphEdge): A list of edges that originate from this node.
+        is_locked (bool): If True, the offset of this node will not be changed.
     """
     def __init__(
             self,
@@ -36,7 +38,8 @@ class _PixelVectorGraphNode:
         self.id: int = id
         self.position: Vector2D = position
         self.offset: Vector2D = offset
-        self.edge_list: list = []
+        self.edge_list: list[_PixelVectorGraphEdge] = []
+        self.is_locked: bool = False
 
     def __eq__(self, other) -> bool:
         """
@@ -64,6 +67,52 @@ class _PixelVectorGraphNode:
             int: Degree of the vertex.
         """
         return len(self.edge_list)
+
+    def get_smoothness_energy(self) -> float:
+        """
+        TODO (P0): Docstring
+        """
+        if len(self.edge_list) == 0:
+            return 0
+
+        # TODO (P0): Nodes of degree 4 may have separate logic for calculating smoothness energy
+        smoothness_energy = 0
+        for edge in self.edge_list:
+            smoothness_energy += edge.get_b_spline_curvature_discrete_integral()
+            smoothness_energy += edge.opposite_edge.get_b_spline_curvature_discrete_integral() / 2
+        smoothness_energy /= len(self.edge_list) * 1.5
+        return smoothness_energy
+
+    def get_displacement_energy(self) -> float:
+        """
+        TODO (P0): Docstring
+        """
+        return float(self.offset) ** 4
+    
+    def get_total_energy(self) -> float:
+        """
+        TODO (P0): Docstring
+        """
+        return self.get_smoothness_energy() + self.get_displacement_energy()
+    
+    def relax_node_to_lower_energy(self, num_samples = 10, sample_space_radius = 0.2):
+        """
+        TODO (P0): Docstring
+        """
+        sample_offsets = [Vector2D((random.random() - 0.5) * 2 * sample_space_radius, (random.random() - 0.5) * 2 * sample_space_radius) for sample in range(num_samples)]
+
+        old_offset = Vector2D(self.offset.x, self.offset.y)
+        energy = self.get_total_energy()
+        updated_offset = old_offset
+
+        for sample_offset in sample_offsets:
+            self.offset = old_offset + sample_offset
+            new_energy = self.get_total_energy()
+            if new_energy < energy:
+                updated_offset = self.offset
+                energy = new_energy
+        
+        self.offset = updated_offset
 
 class _PixelVectorGraphEdge:
     """
@@ -139,6 +188,32 @@ class _PixelVectorGraphEdge:
         # TODO (P0): If the edge is a dead-end edge, the curve should be a straight line.
 
         return (p0, p1, p2)
+    
+    def bezier_curve_curvature(self, p0: Vector2D, p1: Vector2D, p2: Vector2D, t: float) -> float:
+        """
+        TODO (P0): Docstring
+        """
+        d0: Vector2D = p1 - p0
+        d1: Vector2D = p2 - p1
+
+        kappa_t: float = abs(d0.x*d1.y - d1.x*d0.y) / (2 * float((1-t)*d0 + t*d1)**3)
+        return kappa_t
+
+    def get_b_spline_curvature_discrete_integral(self, num_samples: int = 10):
+        """
+        TODO (P0): Docstring
+        """
+        if self.is_dead_end_edge:
+            return 0
+
+        p0, p1, p2 = self.get_b_spline_points()
+        integral = 0
+
+        for i in range(num_samples):
+            t = i / num_samples
+            integral += self.bezier_curve_curvature(p0, p1, p2, t) / num_samples
+        return integral
+
 
 class PixelVectorGraph:
     """
@@ -310,6 +385,13 @@ class PixelVectorGraph:
                 inward_edges[0].is_dead_end_edge = True
             if max(angle_01, angle_12, angle_20) == angle_20:
                 inward_edges[1].is_dead_end_edge = True
+    
+    def smoothen_vectorised_image(self, num_iterations: int = 20, num_samples_per_iteration: int = 10, sample_space_radius = 0.2):
+        for iteration in range(num_iterations):
+            graph_nodes_shuffled: list[_PixelVectorGraphNode] = random.sample(self.graph_nodes_list, len(self.graph_nodes_list))
+
+            for node in graph_nodes_shuffled:
+                node.relax_node_to_lower_energy(num_samples=num_samples_per_iteration, sample_space_radius=sample_space_radius)
 
 # PRIVATE
 

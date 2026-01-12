@@ -292,6 +292,9 @@ class PixelArtRaster:
         # TODO (P2): Do the same vertically as well
         # In most cases, doing horizontally is enough. Checking vertically would help with robustness.
 
+        if pixel_size < 1:
+            pixel_size = 1
+
         self.logger.debug(f'Each square in the input image is found to occupy {pixel_size} pixels')
 
         pixel_art = np.zeros((self.input_raster.shape[0]//pixel_size, self.input_raster.shape[1]//pixel_size, 4), dtype=np.uint8)
